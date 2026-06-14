@@ -1,2 +1,4 @@
 # Bachelorarbeit-FreiwaldSophia
 
+## Exposé Bachelorarbeit
+
