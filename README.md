@@ -1,0 +1,2 @@
+# Bachelorarbeit-FreiwaldSophia
+
