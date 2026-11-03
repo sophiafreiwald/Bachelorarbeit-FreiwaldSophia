@@ -73,11 +73,16 @@ def init_db():
         spalten = {row["name"] for row in conn.execute("PRAGMA table_info(scheduled_posts)")}
         if "plattform_format" not in spalten:
             conn.execute("ALTER TABLE scheduled_posts ADD COLUMN plattform_format TEXT DEFAULT ''")
+        if "video_url" in spalten:  # nicht mehr genutzt (Animationen entfernt)
+            conn.execute("ALTER TABLE scheduled_posts DROP COLUMN video_url")
+        if "slide_urls" not in spalten:  # Karussell: Pfade aller Kartenbilder als JSON-Liste (image_url = Karte 1)
+            conn.execute("ALTER TABLE scheduled_posts ADD COLUMN slide_urls TEXT DEFAULT ''")
+        if "seitenverhaeltnis" not in spalten:  # Feed/Karussell: 4:5 oder 1:1
+            conn.execute("ALTER TABLE scheduled_posts ADD COLUMN seitenverhaeltnis TEXT DEFAULT ''")
 
 
 # Spalten, die nach dem ersten Release von profiles hinzugekommen sind.
-# ALTER TABLE ADD COLUMN, damit bereits bestehende .db-Dateien (z. B. bei
-# Sophia lokal) nicht neu angelegt werden müssen.
+# ALTER TABLE ADD COLUMN, damit bestehende .db-Dateien nicht neu angelegt werden müssen.
 _NEUE_PROFIL_SPALTEN = {
     "zielgruppe": "TEXT DEFAULT ''",
     "anrede": "TEXT DEFAULT 'Sie'",
@@ -85,6 +90,28 @@ _NEUE_PROFIL_SPALTEN = {
     "ci_besonderheiten": "TEXT DEFAULT ''",
     "onboarding_done": "INTEGER DEFAULT 0",
     "ci_schrift_datei": "TEXT DEFAULT ''",
+    # Unternehmenswissen (Produkte, Fakten, Stil)
+    "produkte": "TEXT DEFAULT ''",
+    "fakten": "TEXT DEFAULT ''",
+    "stilbeispiel": "TEXT DEFAULT ''",
+    # für den Hinweis „Sind die Angaben noch aktuell?“
+    "profil_aktualisiert": "TEXT DEFAULT ''",
+    # Website: URL, Altfeld website_fakten (ungenutzt) und Abrufzeitpunkt
+    "website": "TEXT DEFAULT ''",
+    "website_fakten": "TEXT DEFAULT ''",
+    "website_abgerufen": "TEXT DEFAULT ''",
+    # aus der Website grob ausgelesene Tonalität
+    "website_tonalitaet": "TEXT DEFAULT ''",
+    # Veröffentlichung auf Facebook (Seiten-ID); Instagram nutzt instagram_account_id
+    "facebook_page_id": "TEXT DEFAULT ''",
+    # Getrennte Profilangaben (statt eines Sammelfelds „Strategie / Positionierung“ bzw. „Fakten“)
+    "positionierung": "TEXT DEFAULT ''",   # Abgrenzung zur Konkurrenz; "strategie" = Ziele
+    "strasse": "TEXT DEFAULT ''",
+    "plz": "TEXT DEFAULT ''",
+    "ort": "TEXT DEFAULT ''",              # ersetzt in der Oberfläche "standort" (wird beim Speichern übernommen)
+    "telefon": "TEXT DEFAULT ''",
+    "kontakt_email": "TEXT DEFAULT ''",
+    "oeffnungszeiten": "TEXT DEFAULT ''",  # JSON: {"Mo": "06:00–18:00", …, "So": "geschlossen"}
 }
 
 
@@ -147,6 +174,9 @@ def save_profile(user_id: int, **fields):
         "ci_farbe", "ci_farbe_sekundaer", "ci_schrift", "ci_besonderheiten",
         "strategie", "instagram_account_id", "logo_path",
         "zielgruppe", "anrede", "onboarding_done", "ci_schrift_datei",
+        "produkte", "fakten", "stilbeispiel", "profil_aktualisiert",
+        "website", "website_fakten", "website_abgerufen", "website_tonalitaet", "facebook_page_id",
+        "positionierung", "strasse", "plz", "ort", "telefon", "kontakt_email", "oeffnungszeiten",
     }
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
@@ -163,15 +193,17 @@ def save_profile(user_id: int, **fields):
 
 def add_scheduled_post(user_id: int, aspekt: str, caption: str, image_url: str,
                         bild_quelle: str, scheduled_date: str, scheduled_time: str,
-                        status: str = "geplant", plattform_format: str = "") -> int:
+                        status: str = "geplant", plattform_format: str = "", slide_urls: str = "", seitenverhaeltnis: str = "") -> int:
     with get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO scheduled_posts
                (user_id, aspekt, caption, image_url, bild_quelle, status,
-                scheduled_date, scheduled_time, created_at, plattform_format)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                scheduled_date, scheduled_time, created_at, plattform_format, slide_urls,
+                seitenverhaeltnis)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (user_id, aspekt, caption, image_url, bild_quelle, status,
-             scheduled_date, scheduled_time, datetime.datetime.utcnow().isoformat(), plattform_format),
+             scheduled_date, scheduled_time, datetime.datetime.utcnow().isoformat(), plattform_format,
+             slide_urls, seitenverhaeltnis),
         )
         return cur.lastrowid
 
@@ -192,6 +224,41 @@ def list_scheduled_posts(user_id: int, year: int = None, month: int = None):
         return [dict(r) for r in rows]
 
 
-def mark_post_published(post_id: int):
+def mark_post_published(user_id: int, post_id: int) -> bool:
+    """Markiert einen geplanten Beitrag als veröffentlicht und verschiebt ihn im Kalender auf den
+    TATSÄCHLICHEN Veröffentlichungszeitpunkt (sonst stünde er weiter am ursprünglich geplanten Tag)."""
+    jetzt = datetime.datetime.now()
     with get_conn() as conn:
-        conn.execute("UPDATE scheduled_posts SET status = 'veroeffentlicht' WHERE id = ?", (post_id,))
+        cur = conn.execute(
+            """UPDATE scheduled_posts SET status = 'veroeffentlicht', scheduled_date = ?, scheduled_time = ?
+               WHERE id = ? AND user_id = ? AND status = 'geplant'""",
+            (jetzt.date().isoformat(), jetzt.strftime("%H:%M"), post_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
+def get_scheduled_post(user_id: int, post_id: int):
+    """Einzelner Beitrag – nur wenn er zu diesem Konto gehört (sonst None)."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM scheduled_posts WHERE id = ? AND user_id = ?", (post_id, user_id)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def update_scheduled_post(user_id: int, post_id: int, caption: str, scheduled_date: str, scheduled_time: str) -> bool:
+    """Geplanten Beitrag nachträglich ändern (Human-in-the-loop: bis zur Veröffentlichung bearbeitbar).
+    Veröffentlichte Beiträge bleiben unverändert. Gibt True zurück, wenn etwas geändert wurde."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE scheduled_posts SET caption = ?, scheduled_date = ?, scheduled_time = ?
+               WHERE id = ? AND user_id = ? AND status = 'geplant'""",
+            (caption, scheduled_date, scheduled_time, post_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
+def delete_scheduled_post(user_id: int, post_id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute("DELETE FROM scheduled_posts WHERE id = ? AND user_id = ?", (post_id, user_id))
+        return cur.rowcount > 0
