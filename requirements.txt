@@ -1,0 +1,6 @@
+# Installation (im App-Ordner):  python3 -m pip install -r requirements.txt
+streamlit>=1.66
+python-dotenv>=1.0
+openai>=1.40
+requests>=2.31
+Pillow>=10.0

@@ -1,0 +1,14 @@
+# Farbpalette „Tranquil Earthtones“ – Streamlit-eigene Elemente
+# (Auswahlfelder, Checkboxen, Radio-Buttons, Fokusrahmen, Datumswähler, Spinner)
+[theme]
+base = "light"
+primaryColor = "#6E6845"            # Oliv dunkel (Weiß darauf: 5,6:1)
+backgroundColor = "#FBF9F5"         # Creme
+secondaryBackgroundColor = "#F2ECE3" # helles Beige (Eingabefelder, Expander)
+textColor = "#181818"               # Schwarz
+# Schriften app-weit über Google Fonts (Format „Name:URL“) – benötigt Internetzugang
+font = "Work Sans:https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap"
+headingFont = "Space Grotesk:https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"
+
+[client]
+toolbarMode = "minimal"             # blendet „Deploy“ und das Entwicklermenü aus
