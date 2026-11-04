@@ -2042,6 +2042,35 @@ def pruefe_und_generiere(erzwingen: bool = False):
 # Werden bei der Registrierung, im Onboarding (ältere Konten) und auf der Profilseite
 # verwendet – so bleibt das Profil an allen Stellen identisch.
 
+# Leitfragen für Positionierung und Zielgruppe: (Schlüssel, Etikett im gespeicherten Text).
+# Gespeichert wird ein Text wie „Wer: …; Warum: …“ im bestehenden Profilfeld – mit Etiketten,
+# damit das Sprachmodell die Angaben einordnen und die App die Felder wieder befüllen kann.
+POSITIONIERUNG_FELDER = [("angebot", "Angebot"), ("fuer_wen", "Für wen"), ("besonderheit", "Besonderheit")]
+ZIELGRUPPE_FELDER = [("alter", "Altersgruppen"), ("wer", "Wer"), ("warum", "Warum"),
+                     ("nutzung", "Nutzung"), ("zeitpunkt", "Zeitpunkt")]
+ALTER_KEINE = "Keine bestimmte Altersgruppe"
+ALTERSGRUPPEN = ["13–17-Jährige", "18–29", "30–49", "50–64", "65+", ALTER_KEINE]
+
+
+def leitfragen_text(teile: dict, felder: list) -> str:
+    """Setzt die Antworten zu „Etikett: Wert; …“ zusammen (leere Felder entfallen, „;“ → „,“)."""
+    return "; ".join(f"{etikett}: {teile[k].replace(';', ',').strip()}"
+                     for k, etikett in felder if (teile.get(k) or "").strip())
+
+
+def leitfragen_aufteilen(text: str, felder: list, freitext_feld: str) -> dict:
+    """Gegenstück zu leitfragen_text(). Alter Freitext ohne Etiketten landet im Feld freitext_feld."""
+    nach_etikett = {etikett: k for k, etikett in felder}
+    teile = {}
+    for stueck in (text or "").split(";"):
+        etikett, _, wert = stueck.partition(":")
+        if etikett.strip() in nach_etikett and wert.strip():
+            teile[nach_etikett[etikett.strip()]] = wert.strip()
+    if not teile and (text or "").strip():
+        teile[freitext_feld] = text.strip()
+    return teile
+
+
 def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten: bool = False,
                   mit_logo_feld: bool = True) -> dict:
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
@@ -2055,11 +2084,23 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
         placeholder="z. B. mehr Laufkundschaft am Vormittag, Stammkunden binden, Auszubildende gewinnen",
         help="Was soll Social Media für das Unternehmen erreichen?",
     )
-    w["positionierung"] = st.text_area(
-        "Positionierung", profile.get("positionierung", ""),
-        placeholder="z. B. traditionelles Handwerk mit regionalen Zutaten – im Unterschied zu Backshop-Ketten",
-        help="Wofür steht das Unternehmen im Unterschied zur Konkurrenz?",
-    )
+    # Positionierung über drei Leitfragen (Was tun wir? Für wen? Wie?); gespeichert als ein Text
+    # im bisherigen Feld „positionierung“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
+    st.markdown("##### Positionierung")
+    st.caption("Wofür steht ihr – im Unterschied zur Konkurrenz?")
+    pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "angebot")
+    p1, p2, p3 = st.columns(3, vertical_alignment="bottom")
+    with p1:
+        pos["angebot"] = st.text_input("Was bietet ihr an? *", pos.get("angebot", ""),
+                                       placeholder="z. B. Brot aus eigener Backstube")
+    with p2:
+        pos["fuer_wen"] = st.text_input("Für wen ist euer Angebot?", pos.get("fuer_wen", ""),
+                                        placeholder="z. B. Genießer:innen aus der Region")
+    with p3:
+        pos["besonderheit"] = st.text_input("Was macht euch besonders?", pos.get("besonderheit", ""),
+                                            placeholder="z. B. traditionell und regional")
+    w["positionierung"] = leitfragen_text(pos, POSITIONIERUNG_FELDER)
+    w["_positionierung_teile"] = pos
 
     st.markdown("##### Anschrift & Kontakt")
     w["strasse"] = st.text_input("Straße und Hausnummer", profile.get("strasse", ""), placeholder="z. B. Hauptstraße 12")
@@ -2115,12 +2156,32 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     )
     website_tonalitaet_feld(profile, w["website"])
 
+    # Zielgruppe über Leitfragen (Wer? Was? Warum? Wie?); gespeichert als ein Text im bisherigen
+    # Feld „zielgruppe“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
     st.markdown("##### Zielgruppe & Ansprache")
-    w["zielgruppe"] = st.text_area(
-        "Zielgruppe", profile.get("zielgruppe", ""),
-        placeholder="z. B. Berufstätige 25-45 Jahre, gesundheitsbewusst, in der Region",
-        help="Wird als Kontext für alle generierten Inhalte verwendet.",
-    )
+    st.caption("Vier kurze Fragen – ein Stichpunkt pro Feld reicht.")
+    zg = leitfragen_aufteilen(profile.get("zielgruppe", ""), ZIELGRUPPE_FELDER, "wer")
+    alter_vorher = [a.strip() for a in zg.get("alter", "").split(",") if a.strip() in ALTERSGRUPPEN]
+    alter = st.pills("Welche Altersgruppen sollen angesprochen werden? * (mehrere möglich)", ALTERSGRUPPEN,
+                     selection_mode="multi", default=alter_vorher)
+    zg["alter"] = ", ".join(alter or [])
+    # Je Zeile eigene Spalten, unten ausgerichtet – so stehen die Felder auch bei umbrechenden Labels auf einer Linie
+    z1, z2 = st.columns(2, vertical_alignment="bottom")
+    with z1:
+        zg["wer"] = st.text_input("Wer sind die Personen, die angesprochen werden sollen? *", zg.get("wer", ""),
+                                  placeholder="z. B. Berufstätige und Familien aus der Region")
+    with z2:
+        zg["warum"] = st.text_input("Warum kommen diese Personen zu euch? *", zg.get("warum", ""),
+                                    placeholder="z. B. Qualität, persönliche Beratung, Nähe")
+    z3, z4 = st.columns(2, vertical_alignment="bottom")
+    with z3:
+        zg["nutzung"] = st.text_input("Wie nutzen diese Personen euer Angebot?", zg.get("nutzung", ""),
+                                      placeholder="z. B. regelmäßig, mit Termin, mit der Familie")
+    with z4:
+        zg["zeitpunkt"] = st.text_input("Wann sehen diese Personen eure Beiträge?", zg.get("zeitpunkt", ""),
+                                        placeholder="z. B. abends am Handy")
+    w["zielgruppe"] = leitfragen_text(zg, ZIELGRUPPE_FELDER)
+    w["_zielgruppe_teile"] = {**zg, "alter_liste": list(alter or [])}
     w["anrede"] = st.radio(
         "Ansprache der Zielgruppe", ANREDE_OPTIONEN, horizontal=True,
         index=ANREDE_OPTIONEN.index(profile.get("anrede", "Sie")) if profile.get("anrede") in ANREDE_OPTIONEN else 0,
@@ -2174,6 +2235,19 @@ def profil_fehler(w: dict) -> list:
     mail = w.get("kontakt_email", "").strip()
     if mail and ("@" not in mail or "." not in mail.split("@")[-1]):
         fehler.append("Die Kontakt-E-Mail ist ungültig.")
+    pos = w.get("_positionierung_teile", {})
+    if not pos.get("angebot", "").strip():
+        fehler.append("Positionierung: Bitte angeben, was ihr anbietet.")
+    zg = w.get("_zielgruppe_teile", {})
+    alter = zg.get("alter_liste", [])
+    if not alter:
+        fehler.append("Zielgruppe: Bitte mindestens eine Altersgruppe auswählen.")
+    elif ALTER_KEINE in alter and len(alter) > 1:
+        fehler.append(f"Zielgruppe: Bitte entweder bestimmte Altersgruppen oder „{ALTER_KEINE}“ auswählen.")
+    if not zg.get("wer", "").strip():
+        fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
+    if not zg.get("warum", "").strip():
+        fehler.append("Zielgruppe: Bitte angeben, warum diese Personen zu euch kommen.")
     for tag, text in w.get("oeffnungszeiten", {}).items():
         ok, normiert = hinweise.normalisiere_oeffnungszeit(text)
         if ok:

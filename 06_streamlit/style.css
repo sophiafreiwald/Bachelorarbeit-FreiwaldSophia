@@ -121,6 +121,11 @@
     padding:6px 14px !important; font-weight:600 !important; }
   .st-key-chat_chips div.stButton button[kind="secondary"] { color: var(--ink-soft) !important; }
 
+  /* Profil: Altersgruppen-Auswahl (st.pills) – ausgewählte Gruppen oliv gefüllt */
+  button[data-variant="pills"][data-selected="true"] { background:var(--oliv-dunkel) !important;
+    border-color:var(--oliv-dunkel) !important; color:var(--weiss) !important; }
+  button[data-variant="pills"][data-selected="true"] * { color:var(--weiss) !important; }
+
   /* Chat-Bubbles */
   .ce-bubble-row { display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
   .ce-bubble-row.user { flex-direction:row-reverse; }
