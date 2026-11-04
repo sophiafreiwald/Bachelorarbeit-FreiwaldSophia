@@ -126,6 +126,17 @@
     border-color:var(--oliv-dunkel) !important; color:var(--weiss) !important; }
   button[data-variant="pills"][data-selected="true"] * { color:var(--weiss) !important; }
 
+  /* Profil: Logo-Upload dezent – nur ein kleiner Knopf statt der großen Ablagefläche, deutsch beschriftet */
+  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] { background:transparent !important;
+    border:none !important; padding:0 !important; min-height:0 !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzoneInstructions"] { display:none !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] button { border-radius:9px;
+    padding:4px 12px; min-height:0; font-size:0 !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] button > * { display:none !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] button::after { font-size:13px; font-weight:600; }
+  .st-key-logo_feld_aendern [data-testid="stFileUploaderDropzone"] button::after { content:"Logo ändern"; }
+  .st-key-logo_feld_neu [data-testid="stFileUploaderDropzone"] button::after { content:"Logo hochladen"; }
+
   /* Chat-Bubbles */
   .ce-bubble-row { display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
   .ce-bubble-row.user { flex-direction:row-reverse; }

@@ -2049,7 +2049,8 @@ POSITIONIERUNG_FELDER = [("angebot", "Angebot"), ("fuer_wen", "Für wen"), ("bes
 ZIELGRUPPE_FELDER = [("alter", "Altersgruppen"), ("wer", "Wer"), ("warum", "Warum"),
                      ("nutzung", "Nutzung"), ("zeitpunkt", "Zeitpunkt")]
 ALTER_KEINE = "Keine bestimmte Altersgruppe"
-ALTERSGRUPPEN = ["13–17-Jährige", "18–29", "30–49", "50–64", "65+", ALTER_KEINE]
+ALTERSGRUPPEN = ["13–17", "18–29", "30–49", "50–64", "65+", ALTER_KEINE]
+ALTER_ALT = {"13–17-Jährige": "13–17"}  # frühere Bezeichnungen in bereits gespeicherten Profilen
 
 
 def leitfragen_text(teile: dict, felder: list) -> str:
@@ -2079,15 +2080,18 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     st.markdown("##### Unternehmen")
     if mit_logo_feld:  # Logo direkt unter „Unternehmen“: anzeigen und hinzufügen bzw. ändern
         hat_logo = bool(profile.get("logo_path") and os.path.exists(profile["logo_path"]))
-        l1, l2 = st.columns([1, 4], vertical_alignment="center")
-        with l1:
-            if hat_logo:
-                st.image(profile["logo_path"], width=96)
-            else:
-                st.caption("Noch kein Logo")
-        with l2:
-            w["logo_upload"] = st.file_uploader("Logo ändern" if hat_logo else logo_label,
-                                                type=["png", "jpg", "jpeg", "svg"])
+        # dezente Darstellung über style.css (.st-key-logo_feld_…); Knopftext je nachdem, ob schon ein Logo da ist
+        with st.container(key="logo_feld_aendern" if hat_logo else "logo_feld_neu"):
+            l1, l2 = st.columns([1, 5], vertical_alignment="center")
+            with l1:
+                if hat_logo:
+                    st.image(profile["logo_path"], width=96)
+                else:
+                    st.caption("Noch kein Logo")
+            with l2:
+                w["logo_upload"] = st.file_uploader("Logo ändern" if hat_logo else logo_label,
+                                                    type=["png", "jpg", "jpeg", "svg"],
+                                                    label_visibility="collapsed")
     w["unternehmensname"] = st.text_input("Unternehmensname *", profile.get("unternehmensname", ""),
                                           placeholder="z. B. Bäckerei Freiwald")
     w["branche"] = st.text_input("Branche", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
@@ -2167,7 +2171,8 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     st.markdown("##### Zielgruppe & Ansprache")
     st.caption("Vier kurze Fragen – ein Stichpunkt pro Feld reicht.")
     zg = leitfragen_aufteilen(profile.get("zielgruppe", ""), ZIELGRUPPE_FELDER, "wer")
-    alter_vorher = [a.strip() for a in zg.get("alter", "").split(",") if a.strip() in ALTERSGRUPPEN]
+    alter_vorher = [ALTER_ALT.get(a.strip(), a.strip()) for a in zg.get("alter", "").split(",")]
+    alter_vorher = [a for a in alter_vorher if a in ALTERSGRUPPEN]
     alter = st.pills("Welche Altersgruppen sollen angesprochen werden? * (mehrere möglich)", ALTERSGRUPPEN,
                      selection_mode="multi", default=alter_vorher)
     zg["alter"] = ", ".join(alter or [])
@@ -2212,8 +2217,12 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
                                            type=["ttf", "otf"])
     w["ci_besonderheiten"] = st.text_area(
         "Sonstige CI-Besonderheiten", profile.get("ci_besonderheiten", ""),
-        placeholder="z. B. immer mit Hashtag #, nie Emojis, bestimmte Formulierungen vermeiden …",
+        placeholder="z. B. natürliche Bildgestaltung, warme Farbtöne, harmonisches Zusammenspiel – "
+                    "oder: immer mit Hashtag #, nie Emojis …",
+        help="Wird auch für die Bilderstellung verwendet (fließt in die Bildbeschreibung ein).",
     )
+    st.caption("Hier könnt ihr auch Vorgaben angeben, die beispielsweise zur Bilderstellung verwendet werden "
+               "sollen, z. B. natürliche Bildgestaltung, warme Farbtöne, harmonisches Zusammenspiel etc.")
 
     if mit_konten:
         st.markdown("##### Konten für die Veröffentlichung")
