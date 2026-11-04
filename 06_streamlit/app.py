@@ -2138,12 +2138,6 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
         "Produkte & Leistungen", profile.get("produkte", ""),
         placeholder="z. B. Laugenbrezeln, Dinkelbrot, Hochzeitstorten auf Bestellung, Frühstück im Café",
     )
-    w["fakten"] = st.text_area(
-        "Weitere Fakten", profile.get("fakten", ""),
-        placeholder="z. B. Parkplätze vor dem Laden, Lieferservice ab 20 €, barrierefreier Eingang, Betriebsferien",
-        help="Alles Überprüfbare, das nicht oben steht. Bitte aktuell halten – die Content-Engine weist darauf hin, "
-             "wenn das Profil länger nicht geprüft wurde.",
-    )
     w["stilbeispiel"] = st.text_area(
         "Stilbeispiel (ein typischer Beitrag von euch)", profile.get("stilbeispiel", ""),
         placeholder="Einen bisherigen Instagram- oder Facebook-Text einfügen, der eure Sprache gut trifft.",
