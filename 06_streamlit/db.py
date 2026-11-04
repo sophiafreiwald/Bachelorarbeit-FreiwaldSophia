@@ -135,6 +135,18 @@ def _produkte_in_positionierung(conn):
         conn.execute("UPDATE profiles SET positionierung = ? WHERE user_id = ?", ("; ".join(teile), row["user_id"]))
 
 
+def _fakten_in_ci_besonderheiten(conn):
+    """Einmalig vor dem Entfernen der Spalte „fakten“: bisherige „Weitere Fakten“ an die
+    „Sonstigen CI-Besonderheiten“ anhängen, damit nichts verloren geht."""
+    for row in conn.execute("SELECT user_id, fakten, ci_besonderheiten FROM profiles").fetchall():
+        fakten = (row["fakten"] or "").strip()
+        if not fakten:
+            continue
+        bisher = (row["ci_besonderheiten"] or "").strip()
+        neu = f"{bisher}\n{fakten}" if bisher else fakten
+        conn.execute("UPDATE profiles SET ci_besonderheiten = ? WHERE user_id = ?", (neu, row["user_id"]))
+
+
 def _migrate_profiles_schema(conn):
     vorhandene_spalten = {row["name"] for row in conn.execute("PRAGMA table_info(profiles)")}
     for spalte, definition in _NEUE_PROFIL_SPALTEN.items():
@@ -142,6 +154,8 @@ def _migrate_profiles_schema(conn):
             conn.execute(f"ALTER TABLE profiles ADD COLUMN {spalte} {definition}")
     if "produkte" in vorhandene_spalten:
         _produkte_in_positionierung(conn)
+    if "fakten" in vorhandene_spalten:
+        _fakten_in_ci_besonderheiten(conn)
     for spalte in _ENTFERNTE_PROFIL_SPALTEN:
         if spalte in vorhandene_spalten:
             conn.execute(f"ALTER TABLE profiles DROP COLUMN {spalte}")
