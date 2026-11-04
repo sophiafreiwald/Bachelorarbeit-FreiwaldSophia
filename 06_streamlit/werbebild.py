@@ -19,7 +19,7 @@ import urllib.request
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 # Muss zu WERBEBILD_VERSION_ERWARTET in app.py passen (erkennt veraltete Dateien)
-VERSION = 22  # 22: neutrale Headline ohne CI für Variante B; 21: Kennzeichnung „KI-generiert“ auf KI-Bildern; 19: Story mit CTA-Knopf
+VERSION = 23  # 23: Deckkraft der Farbfläche hinter der Headline einstellbar; 22: neutrale Headline ohne CI für Variante B; 21: Kennzeichnung „KI-generiert“ auf KI-Bildern; 19: Story mit CTA-Knopf
 
 # Zielformate in Pixeln (Plattformtabelle der Arbeit): Feed/Karussell 4:5 = 1080 × 1350, Story 9:16 = 1080 × 1920.
 FORMATE = {
@@ -206,8 +206,9 @@ def flaechen_textfarbe(primaer, sekundaer=None):
     return max([(255, 255, 255), (26, 24, 22)], key=lambda c: kontrast(c, primaer))
 
 
-def _textflaeche(bild, zeilen_pos, schrift, groesse, primaer):
-    """Abgerundetes Feld in der Primärfarbe eng um den Headline-Block."""
+def _textflaeche(bild, zeilen_pos, schrift, groesse, primaer, deckkraft=100):
+    """Abgerundetes Feld in der Primärfarbe eng um den Headline-Block; deckkraft in Prozent (100 = deckend,
+    0 = unsichtbar)."""
     draw = ImageDraw.Draw(bild)
     boxen = [draw.textbbox((x, y), z, font=schrift) for (x, y), z in zeilen_pos]
     pad_x, pad_y = int(groesse * 0.45), int(groesse * 0.3)
@@ -215,7 +216,13 @@ def _textflaeche(bild, zeilen_pos, schrift, groesse, primaer):
     y0 = min(b[1] for b in boxen) - pad_y
     x1 = max(b[2] for b in boxen) + pad_x
     y1 = max(b[3] for b in boxen) + pad_y
-    draw.rounded_rectangle([x0, y0, x1, y1], radius=int(groesse * 0.25), fill=primaer)
+    alpha = round(255 * max(0, min(100, deckkraft)) / 100)
+    if alpha <= 0:
+        return
+    ebene = Image.new("RGBA", bild.size, (0, 0, 0, 0))
+    ImageDraw.Draw(ebene).rounded_rectangle([x0, y0, x1, y1], radius=int(groesse * 0.25),
+                                           fill=tuple(primaer) + (alpha,))
+    bild.paste(ebene, (0, 0), ebene)
 
 
 def _cta_knopf(cta, schrift_name, schrift_datei, groesse):
@@ -226,7 +233,8 @@ def _cta_knopf(cta, schrift_name, schrift_datei, groesse):
     return schrift, tb, tb[2] - tb[0] + 2 * pad_x, tb[3] - tb[1] + 2 * pad_y, pad_x, pad_y
 
 
-def _headline_mittig(bild, headline, primaer, sekundaer, schrift_name, schrift_datei, textflaeche=False, cta=""):
+def _headline_mittig(bild, headline, primaer, sekundaer, schrift_name, schrift_datei, textflaeche=False, cta="",
+                     flaeche_deckkraft=100):
     """Headline waagerecht und senkrecht zentriert, höchstens 3 Zeilen, so groß wie möglich. Mit cta (Story):
     darunter ein abgerundeter Knopf in der Primärfarbe; Headline und Knopf sind zusammen zentriert."""
     if not headline and not cta:
@@ -249,7 +257,7 @@ def _headline_mittig(bild, headline, primaer, sekundaer, schrift_name, schrift_d
         y += zeilenhoehe
     if zeilen:
         if textflaeche:
-            _textflaeche(bild, zeilen_pos, schrift, groesse, primaer)
+            _textflaeche(bild, zeilen_pos, schrift, groesse, primaer, flaeche_deckkraft)
             textfarbe = flaechen_textfarbe(primaer, sekundaer)
         else:
             textfarbe = primaer
@@ -315,7 +323,7 @@ def erstelle_werbebild(bild_bytes: bytes, headline: str = "", plattform_format: 
                        ci_farbe: str = "#C9532E", ci_farbe_sekundaer: str = "", schrift_name: str = "",
                        logo_pfad: str = "", schrift_datei: str = "", logo_stil: str = "kachel",
                        verhaeltnis: str = "", textflaeche: bool = False, cta: str = "",
-                       ki_bild: bool = False) -> bytes:
+                       ki_bild: bool = False, flaeche_deckkraft: int = 100) -> bytes:
     """Gibt das fertige Werbebild als JPEG-Bytes zurück: Bild auf das Zielformat zugeschnitten, Headline mittig
     in der Primärfarbe (mit textflaeche=True auf einem Feld in der Primärfarbe), Logo oben rechts.
     cta wird nur bei Storys gezeichnet (Knopf unter der Headline); Feed und Karussell tragen den CTA in der Caption.
@@ -335,7 +343,7 @@ def erstelle_werbebild(bild_bytes: bytes, headline: str = "", plattform_format: 
 
     cta = (cta or "").strip() if str(plattform_format).endswith("_story") else ""
     bild = _headline_mittig(bild, (headline or "").strip(), primaer, sekundaer, schrift_name, schrift_datei,
-                            textflaeche, cta)
+                            textflaeche, cta, flaeche_deckkraft)
     _logo_einfuegen(bild, logo_pfad, logo_stil, int(min(breite, hoehe) * 0.07))
     if ki_bild:
         bild = _ki_kennzeichnung(bild, "", "", str(plattform_format).endswith("_story"))  # neutrale Schrift

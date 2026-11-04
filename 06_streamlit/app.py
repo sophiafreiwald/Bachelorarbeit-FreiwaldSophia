@@ -71,7 +71,7 @@ db.init_db()
 # Prüft, ob app.py und werbebild.py vom selben Stand sind. Häufige Ursache für
 # Fehler wie "unexpected keyword argument": eine alte werbebild.py im Ordner
 # oder ein Streamlit-Server, der das alte Modul noch im Speicher hat.
-WERBEBILD_VERSION_ERWARTET = 22
+WERBEBILD_VERSION_ERWARTET = 23
 if getattr(werbebild, "VERSION", 0) != WERBEBILD_VERSION_ERWARTET:
     st.error(
         f"werbebild.py ist veraltet (Version {getattr(werbebild, 'VERSION', 'alt')}, erwartet "
@@ -571,7 +571,7 @@ def setze_vorschlaege(data, kontext: dict = None):
     # Auch Eingabefelder (Caption, Headline, CTA, Upload) der alten Runde verwerfen –
     # Streamlit-Widgets mit festem key würden sonst die ALTEN Texte weiter anzeigen.
     praefixe = ("ki_bild_", "ki_prompt_", "ki_fehler_", "ki_modell_", "caption_", "headline_", "cta_",
-                "textbild_", "textflaeche_", "angebot_", "bild_", "bildquelle_", "aktion_", "datum_", "zeit_", "feedback_",
+                "textbild_", "textflaeche_", "deckkraft_", "angebot_", "bild_", "bildquelle_", "aktion_", "datum_", "zeit_", "feedback_",
                 "faktencheck_", "hashtags_", "bildwunsch_", "ueberarbeitet_", "slide_", "logo_", "kartentext_",
                 "textexp_")
     for key in [k for k in st.session_state.keys() if str(k).startswith(praefixe)]:
@@ -711,13 +711,15 @@ def karussell_steuerung(i: int, j: int, slides: list, profile: dict, ctx: dict, 
 @st.cache_data(max_entries=300, show_spinner=False)
 def _werbebild_cache(basis_bytes: bytes, headline: str, plattform: str, ci_farbe: str, ci_farbe2: str,
                      schrift_name: str, logo_pfad: str, schrift_datei: str, logo_stil: str,
-                     version: int, verhaeltnis: str = "", textflaeche: bool = False, ki_bild: bool = False) -> bytes:
+                     version: int, verhaeltnis: str = "", textflaeche: bool = False, ki_bild: bool = False,
+                     flaeche_deckkraft: int = 100) -> bytes:
     """Zwischenspeicher: jede Karte wird nur neu gezeichnet, wenn sich Bild oder Text ändern.
     version (werbebild.VERSION) gehört zum Cache-Schlüssel: neue Darstellung -> neu zeichnen."""
     return werbebild.erstelle_werbebild(
         basis_bytes, headline=headline, plattform_format=plattform, ci_farbe=ci_farbe,
         ci_farbe_sekundaer=ci_farbe2, schrift_name=schrift_name, logo_pfad=logo_pfad, schrift_datei=schrift_datei,
-        logo_stil=logo_stil, verhaeltnis=verhaeltnis, textflaeche=textflaeche, ki_bild=ki_bild)
+        logo_stil=logo_stil, verhaeltnis=verhaeltnis, textflaeche=textflaeche, ki_bild=ki_bild,
+        flaeche_deckkraft=flaeche_deckkraft)
 
 
 def textflaeche_haken(i: int):
@@ -727,6 +729,9 @@ def textflaeche_haken(i: int):
         st.checkbox("Headline mit Farbfläche hinterlegen (bessere Lesbarkeit)", key=f"textflaeche_{i}",
                     help="Legt hinter die Headline ein Feld in der Primärfarbe aus dem Profil; die Schrift steht "
                          "darauf in der Sekundärfarbe.")
+        if st.session_state.get(f"textflaeche_{i}", False):
+            st.slider("Deckkraft der Farbfläche", 0, 100, 100, step=5, format="%d %%", key=f"deckkraft_{i}",
+                      help="100 % = Fläche deckend, 0 % = Fläche unsichtbar (nur die Schrift bleibt).")
 
 
 def werbebild_fuer(i: int, j: int, basis_bytes: bytes, headline: str, plattform: str, profile: dict,
@@ -739,7 +744,8 @@ def werbebild_fuer(i: int, j: int, basis_bytes: bytes, headline: str, plattform:
         profile.get("ci_schrift") or "", profile.get("logo_path") or "", profile.get("ci_schrift_datei") or "",
         st.session_state.get(f"logo_{i}", "kachel"), werbebild.VERSION, verhaeltnis,
         st.session_state.get(f"textflaeche_{i}", False),
-        st.session_state.get(sk("bildquelle", i, j), "ki") == "ki")  # Kennzeichnung „KI-generiert“ nur bei KI-Bildern
+        st.session_state.get(sk("bildquelle", i, j), "ki") == "ki",  # Kennzeichnung „KI-generiert“ nur bei KI-Bildern
+        st.session_state.get(f"deckkraft_{i}", 100))  # Deckkraft der Farbfläche hinter der Headline
 
 
 @st.cache_data(max_entries=300, show_spinner=False)
@@ -2940,6 +2946,7 @@ def render_vorschlaege_page():
                                     logo_stil=st.session_state.get(f"logo_{i}", "kachel"),
                                     verhaeltnis=verhaeltnis,
                                     textflaeche=st.session_state.get(f"textflaeche_{i}", False),
+                                    flaeche_deckkraft=st.session_state.get(f"deckkraft_{i}", 100),
                                     # Story: CTA als Knopf im Bild; Feed: CTA in der Caption
                                     cta=st.session_state.get(f"cta_{i}", post.get("cta", "")) if text_aufs_bild else "",
                                     ki_bild=bild_quelle_feld == "ki",  # Kennzeichnung „KI-generiert“ (Art. 50 KI-VO)
