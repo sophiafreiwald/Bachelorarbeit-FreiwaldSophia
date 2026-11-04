@@ -123,8 +123,6 @@ def profil_hinweise(profil: dict, logo_vorhanden: bool, heute: datetime.date = N
                         "einfließen noch im Faktencheck geprüft werden.")
     if not ((profil.get("strasse") or "").strip() and (profil.get("ort") or "").strip()):
         hinweise.append("Die Anschrift im Profil ist unvollständig (Straße und Ort).")
-    if not (profil.get("produkte") or "").strip():
-        hinweise.append("Im Profil sind noch keine Produkte oder Leistungen hinterlegt.")
     if not logo_vorhanden:
         hinweise.append("Es ist kein Logo hinterlegt. Werbebilder erscheinen ohne Logo.")
     stand = profil.get("profil_aktualisiert") or ""

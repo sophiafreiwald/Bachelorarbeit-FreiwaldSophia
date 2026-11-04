@@ -2100,7 +2100,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     # im bisherigen Feld „positionierung“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
     st.markdown("##### Positionierung")
     st.caption("Wofür steht ihr – im Unterschied zur Konkurrenz?")
-    pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "angebot")
+    pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "besonderheit")
     # Größere Felder, damit die Angaben ausführlicher werden (ersetzt auch „Produkte & Leistungen“)
     p1, p2, p3 = st.columns(3, vertical_alignment="bottom")
     with p1:
