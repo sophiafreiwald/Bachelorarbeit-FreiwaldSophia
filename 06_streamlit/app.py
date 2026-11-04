@@ -2053,8 +2053,9 @@ ALTERSGRUPPEN = ["13–17-Jährige", "18–29", "30–49", "50–64", "65+", ALT
 
 
 def leitfragen_text(teile: dict, felder: list) -> str:
-    """Setzt die Antworten zu „Etikett: Wert; …“ zusammen (leere Felder entfallen, „;“ → „,“)."""
-    return "; ".join(f"{etikett}: {teile[k].replace(';', ',').strip()}"
+    """Setzt die Antworten zu „Etikett: Wert; …“ zusammen (leere Felder entfallen, „;“ → „,“,
+    Zeilenumbrüche → Leerzeichen)."""
+    return "; ".join(f"{etikett}: {' '.join(teile[k].replace(';', ',').split())}"
                      for k, etikett in felder if (teile.get(k) or "").strip())
 
 
@@ -2089,16 +2090,20 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     st.markdown("##### Positionierung")
     st.caption("Wofür steht ihr – im Unterschied zur Konkurrenz?")
     pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "angebot")
+    # Größere Felder, damit die Angaben ausführlicher werden (ersetzt auch „Produkte & Leistungen“)
     p1, p2, p3 = st.columns(3, vertical_alignment="bottom")
     with p1:
-        pos["angebot"] = st.text_input("Was bietet ihr an? *", pos.get("angebot", ""),
-                                       placeholder="z. B. Brot aus eigener Backstube")
+        pos["angebot"] = st.text_area("Was bietet ihr an? *", pos.get("angebot", ""), height=140,
+                                      placeholder="z. B. Brot und Brötchen aus eigener Backstube, "
+                                                  "Hochzeitstorten auf Bestellung, Frühstück im Café")
     with p2:
-        pos["fuer_wen"] = st.text_input("Für wen ist euer Angebot?", pos.get("fuer_wen", ""),
-                                        placeholder="z. B. Genießer:innen aus der Region")
+        pos["fuer_wen"] = st.text_area("Für wen ist euer Angebot?", pos.get("fuer_wen", ""), height=140,
+                                       placeholder="z. B. Genießer:innen und Familien aus der Region, "
+                                                   "die Wert auf frische Backwaren legen")
     with p3:
-        pos["besonderheit"] = st.text_input("Was macht euch besonders?", pos.get("besonderheit", ""),
-                                            placeholder="z. B. traditionell und regional")
+        pos["besonderheit"] = st.text_area("Was macht euch besonders?", pos.get("besonderheit", ""), height=140,
+                                           placeholder="z. B. traditionelles Handwerk mit regionalen Zutaten – "
+                                                       "im Unterschied zu Backshop-Ketten")
     w["positionierung"] = leitfragen_text(pos, POSITIONIERUNG_FELDER)
     w["_positionierung_teile"] = pos
 
@@ -2134,10 +2139,6 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     st.markdown("##### Unternehmenswissen")
     st.caption("Diese Angaben nutzt die Content-Engine für Texte, Ideen und Bilder. "
                "Je konkreter, desto passender die Beiträge.")
-    w["produkte"] = st.text_area(
-        "Produkte & Leistungen", profile.get("produkte", ""),
-        placeholder="z. B. Laugenbrezeln, Dinkelbrot, Hochzeitstorten auf Bestellung, Frühstück im Café",
-    )
     w["stilbeispiel"] = st.text_area(
         "Stilbeispiel (ein typischer Beitrag von euch)", profile.get("stilbeispiel", ""),
         placeholder="Einen bisherigen Instagram- oder Facebook-Text einfügen, der eure Sprache gut trifft.",
