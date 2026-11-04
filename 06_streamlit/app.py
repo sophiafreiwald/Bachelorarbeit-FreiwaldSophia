@@ -2053,8 +2053,9 @@ ALTERSGRUPPEN = ["13–17-Jährige", "18–29", "30–49", "50–64", "65+", ALT
 
 
 def leitfragen_text(teile: dict, felder: list) -> str:
-    """Setzt die Antworten zu „Etikett: Wert; …“ zusammen (leere Felder entfallen, „;“ → „,“)."""
-    return "; ".join(f"{etikett}: {teile[k].replace(';', ',').strip()}"
+    """Setzt die Antworten zu „Etikett: Wert; …“ zusammen (leere Felder entfallen, „;“ → „,“,
+    Zeilenumbrüche → Leerzeichen)."""
+    return "; ".join(f"{etikett}: {' '.join(teile[k].replace(';', ',').split())}"
                      for k, etikett in felder if (teile.get(k) or "").strip())
 
 
@@ -2076,6 +2077,17 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
     w = {}
     st.markdown("##### Unternehmen")
+    if mit_logo_feld:  # Logo direkt unter „Unternehmen“: anzeigen und hinzufügen bzw. ändern
+        hat_logo = bool(profile.get("logo_path") and os.path.exists(profile["logo_path"]))
+        l1, l2 = st.columns([1, 4], vertical_alignment="center")
+        with l1:
+            if hat_logo:
+                st.image(profile["logo_path"], width=96)
+            else:
+                st.caption("Noch kein Logo")
+        with l2:
+            w["logo_upload"] = st.file_uploader("Logo ändern" if hat_logo else logo_label,
+                                                type=["png", "jpg", "jpeg", "svg"])
     w["unternehmensname"] = st.text_input("Unternehmensname *", profile.get("unternehmensname", ""),
                                           placeholder="z. B. Bäckerei Freiwald")
     w["branche"] = st.text_input("Branche", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
@@ -2088,17 +2100,21 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     # im bisherigen Feld „positionierung“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
     st.markdown("##### Positionierung")
     st.caption("Wofür steht ihr – im Unterschied zur Konkurrenz?")
-    pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "angebot")
+    pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "besonderheit")
+    # Größere Felder, damit die Angaben ausführlicher werden (ersetzt auch „Produkte & Leistungen“)
     p1, p2, p3 = st.columns(3, vertical_alignment="bottom")
     with p1:
-        pos["angebot"] = st.text_input("Was bietet ihr an? *", pos.get("angebot", ""),
-                                       placeholder="z. B. Brot aus eigener Backstube")
+        pos["angebot"] = st.text_area("Was bietet ihr an? *", pos.get("angebot", ""), height=140,
+                                      placeholder="z. B. Brot und Brötchen aus eigener Backstube, "
+                                                  "Hochzeitstorten auf Bestellung, Frühstück im Café")
     with p2:
-        pos["fuer_wen"] = st.text_input("Für wen ist euer Angebot?", pos.get("fuer_wen", ""),
-                                        placeholder="z. B. Genießer:innen aus der Region")
+        pos["fuer_wen"] = st.text_area("Für wen ist euer Angebot?", pos.get("fuer_wen", ""), height=140,
+                                       placeholder="z. B. Genießer:innen und Familien aus der Region, "
+                                                   "die Wert auf frische Backwaren legen")
     with p3:
-        pos["besonderheit"] = st.text_input("Was macht euch besonders?", pos.get("besonderheit", ""),
-                                            placeholder="z. B. traditionell und regional")
+        pos["besonderheit"] = st.text_area("Was macht euch besonders?", pos.get("besonderheit", ""), height=140,
+                                           placeholder="z. B. traditionelles Handwerk mit regionalen Zutaten – "
+                                                       "im Unterschied zu Backshop-Ketten")
     w["positionierung"] = leitfragen_text(pos, POSITIONIERUNG_FELDER)
     w["_positionierung_teile"] = pos
 
@@ -2134,16 +2150,6 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     st.markdown("##### Unternehmenswissen")
     st.caption("Diese Angaben nutzt die Content-Engine für Texte, Ideen und Bilder. "
                "Je konkreter, desto passender die Beiträge.")
-    w["produkte"] = st.text_area(
-        "Produkte & Leistungen", profile.get("produkte", ""),
-        placeholder="z. B. Laugenbrezeln, Dinkelbrot, Hochzeitstorten auf Bestellung, Frühstück im Café",
-    )
-    w["fakten"] = st.text_area(
-        "Weitere Fakten", profile.get("fakten", ""),
-        placeholder="z. B. Parkplätze vor dem Laden, Lieferservice ab 20 €, barrierefreier Eingang, Betriebsferien",
-        help="Alles Überprüfbare, das nicht oben steht. Bitte aktuell halten – die Content-Engine weist darauf hin, "
-             "wenn das Profil länger nicht geprüft wurde.",
-    )
     w["stilbeispiel"] = st.text_area(
         "Stilbeispiel (ein typischer Beitrag von euch)", profile.get("stilbeispiel", ""),
         placeholder="Einen bisherigen Instagram- oder Facebook-Text einfügen, der eure Sprache gut trifft.",
@@ -2204,8 +2210,6 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
                                          "bitte zusätzlich die Schriftdatei hochladen.")
     w["schrift_upload"] = st.file_uploader("Schriftdatei (optional, .ttf/.otf – am besten der fette Schnitt)",
                                            type=["ttf", "otf"])
-    if mit_logo_feld:  # Profilseite: Logo wird oben über den Stift geändert
-        w["logo_upload"] = st.file_uploader(logo_label, type=["png", "jpg", "jpeg", "svg"])
     w["ci_besonderheiten"] = st.text_area(
         "Sonstige CI-Besonderheiten", profile.get("ci_besonderheiten", ""),
         placeholder="z. B. immer mit Hashtag #, nie Emojis, bestimmte Formulierungen vermeiden …",
@@ -3598,36 +3602,14 @@ def website_nach_speichern(user_id: int, altes_profil: dict, website: str):
         db.save_profile(user_id, website_tonalitaet="", website_abgerufen="")
 
 
-def logo_mit_stift(profile: dict):
-    """Logo oben im Profil mit kleinem Stift daneben; darüber wird das Logo direkt geändert."""
-    bild_col, stift_col, _ = st.columns([1, 1, 6], vertical_alignment="center")
-    with bild_col:
-        if profile.get("logo_path") and os.path.exists(profile["logo_path"]):
-            st.image(profile["logo_path"], width=96)
-        else:
-            st.caption("Noch kein Logo")
-    with stift_col:
-        with st.popover("", icon=":material/edit:", help="Logo ändern"):
-            neu = st.file_uploader("Neues Logo", type=["png", "jpg", "jpeg", "svg"], key="logo_neu")
-            if st.button("Logo übernehmen", type="primary", disabled=neu is None, key="logo_uebernehmen"):
-                db.save_profile(st.session_state.user_id, logo_path=save_logo(neu, st.session_state.user_id))
-                st.session_state.pop("logo_neu", None)
-                st.session_state.logo_geaendert = True
-                st.rerun()
-    if st.session_state.pop("logo_geaendert", False):
-        st.success("Logo geändert.")
-
-
 def render_profil_page():
     topbar("Profil", "Diese Angaben werden bei jeder Content-Generierung als Kontext mitgegeben.")
 
     with st.container(key="pagebody"):
         profile = db.get_profile(st.session_state.user_id)
 
-        logo_mit_stift(profile)
-
         with st.form("profil_formular"):
-            werte = profil_felder(profile, mit_konten=True, mit_logo_feld=False)
+            werte = profil_felder(profile, mit_konten=True)
             if st.form_submit_button("Profil speichern", type="primary"):
                 fehler = profil_fehler(werte)
                 for f in fehler:

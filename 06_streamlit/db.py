@@ -90,9 +90,7 @@ _NEUE_PROFIL_SPALTEN = {
     "ci_besonderheiten": "TEXT DEFAULT ''",
     "onboarding_done": "INTEGER DEFAULT 0",
     "ci_schrift_datei": "TEXT DEFAULT ''",
-    # Unternehmenswissen (Produkte, Fakten, Stil)
-    "produkte": "TEXT DEFAULT ''",
-    "fakten": "TEXT DEFAULT ''",
+    # Unternehmenswissen (Stil); „produkte“ und „fakten“ entfallen, siehe _ENTFERNTE_PROFIL_SPALTEN
     "stilbeispiel": "TEXT DEFAULT ''",
     # für den Hinweis „Sind die Angaben noch aktuell?“
     "profil_aktualisiert": "TEXT DEFAULT ''",
@@ -115,11 +113,52 @@ _NEUE_PROFIL_SPALTEN = {
 }
 
 
+# Spalten, die nicht mehr abgefragt werden: „Produkte & Leistungen“ steckt jetzt in der Positionierung
+# („Was bietet ihr an?“), „Weitere Fakten“ entfällt. Sie werden aus bestehenden .db-Dateien entfernt.
+_ENTFERNTE_PROFIL_SPALTEN = ("produkte", "fakten")
+
+
+def _produkte_in_positionierung(conn):
+    """Einmalig vor dem Entfernen der Spalte „produkte“: bisherige Angaben nicht verlieren.
+    Produkte/Leistungen → „Angebot“, alter Freitext der Positionierung (Abgrenzung zur Konkurrenz)
+    → „Besonderheit“ – im Format „Etikett: Wert; …“ der Leitfragen."""
+    def bereinigt(text):
+        return " ".join((text or "").replace(";", ",").split())
+
+    for row in conn.execute("SELECT user_id, produkte, positionierung FROM profiles").fetchall():
+        produkte, positionierung = bereinigt(row["produkte"]), (row["positionierung"] or "").strip()
+        if not produkte or positionierung.startswith("Angebot:"):
+            continue  # nichts zu übernehmen bzw. schon im neuen Format
+        teile = [f"Angebot: {produkte}"]
+        if positionierung:
+            teile.append(f"Besonderheit: {bereinigt(positionierung)}")
+        conn.execute("UPDATE profiles SET positionierung = ? WHERE user_id = ?", ("; ".join(teile), row["user_id"]))
+
+
+def _fakten_in_ci_besonderheiten(conn):
+    """Einmalig vor dem Entfernen der Spalte „fakten“: bisherige „Weitere Fakten“ an die
+    „Sonstigen CI-Besonderheiten“ anhängen, damit nichts verloren geht."""
+    for row in conn.execute("SELECT user_id, fakten, ci_besonderheiten FROM profiles").fetchall():
+        fakten = (row["fakten"] or "").strip()
+        if not fakten:
+            continue
+        bisher = (row["ci_besonderheiten"] or "").strip()
+        neu = f"{bisher}\n{fakten}" if bisher else fakten
+        conn.execute("UPDATE profiles SET ci_besonderheiten = ? WHERE user_id = ?", (neu, row["user_id"]))
+
+
 def _migrate_profiles_schema(conn):
     vorhandene_spalten = {row["name"] for row in conn.execute("PRAGMA table_info(profiles)")}
     for spalte, definition in _NEUE_PROFIL_SPALTEN.items():
         if spalte not in vorhandene_spalten:
             conn.execute(f"ALTER TABLE profiles ADD COLUMN {spalte} {definition}")
+    if "produkte" in vorhandene_spalten:
+        _produkte_in_positionierung(conn)
+    if "fakten" in vorhandene_spalten:
+        _fakten_in_ci_besonderheiten(conn)
+    for spalte in _ENTFERNTE_PROFIL_SPALTEN:
+        if spalte in vorhandene_spalten:
+            conn.execute(f"ALTER TABLE profiles DROP COLUMN {spalte}")
 
 
 # --- Nutzer & Login -----------------------------------------------------
@@ -174,7 +213,7 @@ def save_profile(user_id: int, **fields):
         "ci_farbe", "ci_farbe_sekundaer", "ci_schrift", "ci_besonderheiten",
         "strategie", "instagram_account_id", "logo_path",
         "zielgruppe", "anrede", "onboarding_done", "ci_schrift_datei",
-        "produkte", "fakten", "stilbeispiel", "profil_aktualisiert",
+        "stilbeispiel", "profil_aktualisiert",
         "website", "website_fakten", "website_abgerufen", "website_tonalitaet", "facebook_page_id",
         "positionierung", "strasse", "plz", "ort", "telefon", "kontakt_email", "oeffnungszeiten",
     }
