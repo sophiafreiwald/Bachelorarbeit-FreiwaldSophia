@@ -1,13 +1,3 @@
-"""SQLite-Datenschicht für den Content-Engine-Prototyp.
-
-Bewusst einfach gehalten (ein lokales SQLite-File, kein externer Dienst) –
-passend zum aktuellen Entwicklungsstand als Bachelorarbeit-Prototyp.
-Das Passwort-Hashing (hashlib + Salt) ist für einen Testbetrieb mit den
-7 Interviewpartnern ausreichend, aber NICHT production-grade (kein bcrypt/
-argon2) – das sollte in den Limitationen erwähnt werden, falls die
-Anwendung über den Evaluationszeitraum hinaus eingesetzt werden soll.
-"""
-
 import datetime
 import hashlib
 import os
