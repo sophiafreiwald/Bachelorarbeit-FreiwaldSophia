@@ -2077,6 +2077,17 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
     w = {}
     st.markdown("##### Unternehmen")
+    if mit_logo_feld:  # Logo direkt unter „Unternehmen“: anzeigen und hinzufügen bzw. ändern
+        hat_logo = bool(profile.get("logo_path") and os.path.exists(profile["logo_path"]))
+        l1, l2 = st.columns([1, 4], vertical_alignment="center")
+        with l1:
+            if hat_logo:
+                st.image(profile["logo_path"], width=96)
+            else:
+                st.caption("Noch kein Logo")
+        with l2:
+            w["logo_upload"] = st.file_uploader("Logo ändern" if hat_logo else logo_label,
+                                                type=["png", "jpg", "jpeg", "svg"])
     w["unternehmensname"] = st.text_input("Unternehmensname *", profile.get("unternehmensname", ""),
                                           placeholder="z. B. Bäckerei Freiwald")
     w["branche"] = st.text_input("Branche", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
@@ -2199,8 +2210,6 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
                                          "bitte zusätzlich die Schriftdatei hochladen.")
     w["schrift_upload"] = st.file_uploader("Schriftdatei (optional, .ttf/.otf – am besten der fette Schnitt)",
                                            type=["ttf", "otf"])
-    if mit_logo_feld:  # Profilseite: Logo wird oben über den Stift geändert
-        w["logo_upload"] = st.file_uploader(logo_label, type=["png", "jpg", "jpeg", "svg"])
     w["ci_besonderheiten"] = st.text_area(
         "Sonstige CI-Besonderheiten", profile.get("ci_besonderheiten", ""),
         placeholder="z. B. immer mit Hashtag #, nie Emojis, bestimmte Formulierungen vermeiden …",
@@ -3593,36 +3602,14 @@ def website_nach_speichern(user_id: int, altes_profil: dict, website: str):
         db.save_profile(user_id, website_tonalitaet="", website_abgerufen="")
 
 
-def logo_mit_stift(profile: dict):
-    """Logo oben im Profil mit kleinem Stift daneben; darüber wird das Logo direkt geändert."""
-    bild_col, stift_col, _ = st.columns([1, 1, 6], vertical_alignment="center")
-    with bild_col:
-        if profile.get("logo_path") and os.path.exists(profile["logo_path"]):
-            st.image(profile["logo_path"], width=96)
-        else:
-            st.caption("Noch kein Logo")
-    with stift_col:
-        with st.popover("", icon=":material/edit:", help="Logo ändern"):
-            neu = st.file_uploader("Neues Logo", type=["png", "jpg", "jpeg", "svg"], key="logo_neu")
-            if st.button("Logo übernehmen", type="primary", disabled=neu is None, key="logo_uebernehmen"):
-                db.save_profile(st.session_state.user_id, logo_path=save_logo(neu, st.session_state.user_id))
-                st.session_state.pop("logo_neu", None)
-                st.session_state.logo_geaendert = True
-                st.rerun()
-    if st.session_state.pop("logo_geaendert", False):
-        st.success("Logo geändert.")
-
-
 def render_profil_page():
     topbar("Profil", "Diese Angaben werden bei jeder Content-Generierung als Kontext mitgegeben.")
 
     with st.container(key="pagebody"):
         profile = db.get_profile(st.session_state.user_id)
 
-        logo_mit_stift(profile)
-
         with st.form("profil_formular"):
-            werte = profil_felder(profile, mit_konten=True, mit_logo_feld=False)
+            werte = profil_felder(profile, mit_konten=True)
             if st.form_submit_button("Profil speichern", type="primary"):
                 fehler = profil_fehler(werte)
                 for f in fehler:
