@@ -280,7 +280,7 @@ def plattform_vorgaben(key: str, verhaeltnis: str = "") -> dict:
 
 def bild_erforderlich(content_type: str) -> bool:
     return content_type in ("bild", "beides")
-NAV_ITEMS = [("chat", "Dialog"), ("vorschlaege", "Vorschläge"), ("kalender", "Kalender"), ("profil", "Profil")]
+NAV_ITEMS = [("chat", "Beitrag erstellen"), ("vorschlaege", "Posting Vorschläge"), ("kalender", "Content-Kalender"), ("profil", "Profil")]
 LOGO_VERZEICHNIS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "logos")
 
 # --- Design-Tokens & globales CSS: ausgelagert in style.css --------------
