@@ -2,16 +2,17 @@
 
 Quellenhinweise stehen nur als Kommentare (# Quellen: …) und werden nicht an das Modell geschickt.
 
-Übersicht
-  1. DIALOG             – Frage „thema“ (KI), Wirkung/Art des Beitrags (feste Auswahl), Klärung, Auswertung
-                          freier Antworten
-  2. POST_GENERIERUNG   – EIN Gesamtprompt nach der letzten Dialogfrage (Rahmenmodell, Werbebotschaft,
-                          Bildgestaltung); 2b Ideen, 2c Anrede-Korrektur
-  3. KUERZEN            – nur bei ausdrücklich übergebenem Zeichenlimit
-  B. VERGLEICHSVARIANTE – naiver Prompt für den A/B-Test (Variante B)
-  4. BILD               – zusammengesetzte Endform für das Bildmodell
-  5. FEEDBACK / 5b. ÜBERARBEITEN – Selbstprüfung vor der Anzeige
-  6. WEBSITE_TONALITÄT / 7. FAKTENCHECK
+Übersicht (in der Reihenfolge, in der die App die Prompts aufruft)
+  0. VORBEREITUNG        – Website-Tonalität auslesen (einmalig im Profil); Ergebnis fließt als Eingabe in 2 ein
+  1. DIALOG              – Frage „thema“ (KI), Wirkung/Art des Beitrags (feste Auswahl), Klärung, Auswertung
+                           freier Antworten
+  2. POST_GENERIERUNG    – EIN Gesamtprompt nach der letzten Dialogfrage (Rahmenmodell, Werbebotschaft,
+                           Bildgestaltung); 2b Ideen (Inhaltsart „Nur Idee“)
+  3. QUALITÄTSSICHERUNG  – je Beitrag vor der Anzeige: 3a Selbstprüfung (Feedback) → 3b Überarbeiten
+     TEXT                  → 3c Kürzen (nur bei überschrittenem Zeichenlimit) → 3d Anrede-Korrektur (nur bei Verstoß)
+  4. BILDERSTELLUNG      – zusammengesetzte Endform für das Bildmodell (parallel zu 3)
+  5. FAKTENCHECK         – vor der Freigabe
+  B. VERGLEICHSVARIANTE  – naiver Prompt für den A/B-Test (Variante B)
 """
 
 import datetime
@@ -19,7 +20,7 @@ import json
 import re
 
 
-# --- 0. PROFILFAKTEN (für alle Prompts einheitlich aufbereitet) ---------------------------
+# --- PROFILFAKTEN (Hilfsfunktionen, für alle Prompts einheitlich aufbereitet) ----------------
 
 WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
@@ -64,6 +65,29 @@ def _heute() -> str:
 
 # Persona für die Dialog-Prompts. Quelle: White et al., 2023 – Persona Pattern
 ROLLE_KMU = "Nimm die Rolle eines Marketingmanagers für die Plattformen Instagram und Facebook ein."
+
+
+# --- 0. VORBEREITUNG: WEBSITE-TONALITÄT (einmalig im Profil, fließt in 2 ein) ----------------
+# Ablauf: app.website_text_abrufen liefert den Seitentext → WEBSITE_TONALITAET_SYSTEM → Profilfeld
+# „website_tonalitaet“ → in 2 als TONALITÄT_LAUT_WEBSITE an den Gesamtprompt übergeben.
+# Die Website wird nur genutzt, um die Tonalität der Unternehmenstexte grob auszulesen. Fakten (Öffnungszeiten,
+# Anschrift, Preise …) kommen ausschließlich aus dem Profil.
+
+WEBSITE_TONALITAET_SYSTEM = (
+    "Du analysierst den bereitgestellten Text einer Unternehmenswebsite AUSSCHLIESSLICH sprachlich: Wie formuliert "
+    "das Unternehmen seine Texte? Beschreibe die Tonalität knapp in 4 bis 6 Stichpunkten:\n"
+    "- Anrede der Leserinnen und Leser (Du, Sie, Ihr oder neutral)\n"
+    "- Satzlänge und Satzbau (z. B. kurz und direkt, ausführlich, viele Aufzählungen)\n"
+    "- Wortwahl (z. B. sachlich, emotional, fachlich, umgangssprachlich, regional)\n"
+    "- Stimmung und Haltung (z. B. herzlich, traditionsbewusst, modern, zurückhaltend)\n"
+    "- Auffälligkeiten wie Ausrufezeichen, Emojis, Wir-Form oder wiederkehrende Formulierungen (höchstens drei "
+    "kurze wörtliche Beispiele)\n\n"
+    "Übernimm KEINE Fakten (keine Öffnungszeiten, Anschrift, Kontaktdaten, Preise, Produkte oder Aktionen). "
+    "Beschreibe nur, was im Text tatsächlich erkennbar ist, und erfinde nichts. Navigation, Cookie-Hinweise und "
+    "Impressumsangaben sind keine Unternehmenstexte und bleiben unberücksichtigt. Ist zu wenig zusammenhängender "
+    "Text vorhanden, antworte genau: „Zu wenig Text, um die Tonalität zu bestimmen.“\n\n"
+    "Antworte als kurze Stichpunktliste auf Deutsch, ohne Einleitung."
+)
 
 
 # --- 1. DIALOG ------------------------------------------------------------------------------
@@ -551,6 +575,7 @@ def post_generierung(payload: dict) -> dict:
     return {"prompts": {"system": g["system"], "user": g["user"], "modell": MODELL,
                         "temperatur": GESAMT_TEMPERATUR}}
 
+
 # --- 2b. IDEEN (Inhaltsart „Nur Idee“) -------------------------------------------------------
 # Bei „Nur Idee“ entstehen keine fertigen Beiträge, sondern drei Umsetzungsideen (direkt nach der Formatwahl).
 # Quellen: Contenttypen nach Shahbaznezhad et al., 2021; Ziele nach Bruhn, 2014 / Meffert et al., 2019
@@ -588,20 +613,124 @@ def ideen_prompts(p: dict) -> dict:
     return {"system": IDEEN_SYSTEM, "user": user}
 
 
-# --- 2c. ANREDE-KORREKTUR ------------
-# Wird nur aufgerufen, wenn die regelbasierte Prüfung (hinweise.anrede_verstoss) eine falsche Ansprache findet.
-def anrede_korrektur_system(anrede: str) -> str:
-    form = ("die Sie-Form (Sie, Ihnen, Ihr, Ihre …; Verben in der Höflichkeitsform)" if anrede != "Du" else
-            "die Du-Form (du, dich, dir, dein …; Verben in der 2. Person Singular)")
+# --- 3a. QUALITÄTSSICHERUNG TEXT: SELBSTPRÜFUNG (Feedback) -----------------------------------
+# Kommunikationstheoretische Prüfung zuerst, für Feed, Karussell und Story gleich (alle Textelemente des Formats).
+# Quellen: Lasswell, 1948; Meffert et al., 2019 · Shahbaznezhad et al., 2021 · Schulz von Thun, 2001 · Adam, 2026 ·
+# Kanuri et al., 2024; Kostyk & Huhmann, 2021; Dang et al., 2026 · AIDA
+
+FEEDBACK_SYSTEM = (
+    "Du begutachtest kritisch-konstruktiv einen organischen Instagram-/Facebook-Beitragsentwurf für ein KMU. "
+    "Bewerte ausschließlich die Textelemente des Entwurfs, das bekannte Unternehmensprofil, das Kommunikationsziel "
+    "und – soweit übergeben – Bildbeschreibung, Overlay-Konzept und Formatkonfiguration.\n\n"
+    "TEXTELEMENTE JE FORMAT (für alle Formate gilt dieselbe Prüfung; die Elemente bilden zusammen EINE "
+    "Werbebotschaft):\n"
+    "- Feed: Headline (auf dem Bild) und Caption; der Appell steht am Ende der Caption.\n"
+    "- Karussell: Headlines und Texte der Karten sowie die Caption; der Appell steht am Ende der Caption.\n"
+    "- Story: Headline und CTA (Knopf im Bild); es gibt keine Caption, der CTA trägt den Appell.\n\n"
+    "Prüfe ZUERST kommunikationstheoretisch (Kern der Bewertung):\n"
+    "- Lasswell: Ist in den Textelementen erkennbar, wer (Unternehmen über Name, Produkt, Leistung oder "
+    "Positionierung) was (genau eine zentrale Botschaft = Unteraspekt, konkret umgesetzt) zu wem (auf die Zielgruppe "
+    "zugeschnittene Wortwahl und Beispiele) mit welcher Wirkung (kognitiv: etwas Neues erfahren; affektiv: Sympathie "
+    "oder Vertrauen; konativ: konkrete Handlung) sagt? Stimmen Thema, Angebot, Unternehmen, Zielgruppe und "
+    "Kommunikationsziel überein?\n"
+    "- AIDA: Weckt die Headline (beim Karussell die Titelkarte) mit einem konkreten Versprechen oder einer Frage "
+    "Aufmerksamkeit (Attention)? Knüpfen Caption bzw. Kartentexte direkt daran an (Interest) und zeigen einen belegten "
+    "Nutzen (Desire) – bei der Story leisten das Headline und Bild gemeinsam? Endet die Caption mit einer "
+    "zielgerechten Handlungsaufforderung bzw. enthält der CTA der Story eine (Action)?\n"
+    "- Schulz von Thun, Vier-Seiten-Modell: Enthalten die Textelemente zusammen alle vier Ebenen – mindestens eine "
+    "konkrete Profil- oder Angebotsangabe (Sachebene), eine Aussage, wofür das Unternehmen steht (Selbstoffenbarung; "
+    "bei der Story auch über das Bild), die vorgegebene Anrede (Beziehungsebene) und eine zum Ziel passende "
+    "Handlungsaufforderung, Kaufaufforderung nur bei konativem Ziel oder transaktionalem Contenttyp (Appell)?\n"
+    "- Schulz von Thun, Verständlichkeit: Sind alle Textelemente einfach, gegliedert und geordnet, kurz und prägnant "
+    "und dosiert anregend?\n"
+    "Prüfe danach knapp und konkret:\n"
+    "- Passt der Contenttyp (informativ, interaktional, transaktional) zum Ziel? Ist in der Anfrage ein "
+    "„inhaltlicher_contenttyp“ festgelegt, prüfe stattdessen, ob der Entwurf diese Ausrichtung umsetzt.\n"
+    "- Sind die Textelemente markenkonform und natürlich und nutzen konkrete Angaben aus dem Unternehmensprofil? "
+    "Falls es eine Caption gibt: Folgt sie dem Aufbau Kernaussage mit Emoji, Leerzeile, Schlussabsatz mit Frage "
+    "und konkreter Handlungsaufforderung (Schulz von Thun: Gliederung), hält sie das technische Zeichenlimit ein "
+    "(verbindlich; die Längenempfehlungen der Plattform sind nur Orientierung: verlange keine Kürzung oder "
+    "Verlängerung, nur um einen Längenkorridor zu erreichen, und keine Streichung von Profil- oder Angebotsangaben "
+    "wegen der Länge), und enthält sie "
+    "1 bis 3 passende Emojis (sofern die CI Emojis nicht untersagt)?\n"
+    "- Wiederholungen sind ein Fehler: Wiederholt die Caption die Headline, wiederholt der CTA Headline oder Caption, "
+    "wiederholen sich Karten?\n"
+    "- Löst der Folgetext (Caption bzw. Kartentexte) konkret ein, was die Headline ankündigt (z. B. die angekündigten "
+    "Tipps oder Schritte)? Beim Karussell: Ergeben die Kartenheadlines nacheinander einen roten Faden?\n"
+    "- Könnten Text oder Bild von den Nutzenden als KI-generiert wahrgenommen werden?\n"
+    "- Ergänzen die Textelemente das Bild um relevante Informationen statt das Motiv nur zu wiederholen? "
+    "Unterstützen Bildmotiv, Farbkomplexität, Symmetrie/Helligkeitskontrast und ggf. Overlay die Botschaft? Bewerte "
+    "diese Regeln kontextabhängig, nicht als starre Erfolgsgarantie.\n"
+    "- Werden nur bestätigte Unternehmensdaten verwendet, sind Angebotszeitraum und technische Ausgabevorgaben "
+    "eingehalten?\n\n"
+    "Kennzeichne keine angeblichen Performance-Effekte als erwiesen. Verlange NICHT pauschal menschfreie Bilder "
+    "oder möglichst wenige Farben. Nenne ausschließlich die wichtigsten Verbesserungen; benenne bei Verbesserungen, "
+    "welche Theorie betroffen ist (z. B. „AIDA: …“).\n\n"
+    "Ordne jeden Eintrag den betroffenen Textelementen zu: „felder“ enthält eine oder mehrere IDs aus FELDER "
+    "(z. B. headline, caption, cta, karte_1, karte_2 …). Betrifft ein Punkt mehrere Elemente (z. B. die Caption "
+    "wiederholt die Headline), nenne alle betroffenen IDs. Punkte zum Bild ordnest du dem Textelement zu, das mit "
+    "dem Bild zusammenwirkt.\n\n"
+    "Antworte ausschließlich mit validem JSON und genau diesen Schlüsseln:\n"
+    '{"staerken":[{"felder":["..."],"text":"..."}],"verbesserungen":[{"felder":["..."],"text":"..."}],'
+    '"fazit":"..."}\n'
+    "„staerken“ enthält höchstens 2 Einträge, „verbesserungen“ höchstens 3; beide Arrays dürfen kürzer sein."
+)
+
+
+# --- 3b. QUALITÄTSSICHERUNG TEXT: ÜBERARBEITEN -----------------------------------------------
+# Headline und Folgetext gemeinsam überarbeiten, für Feed, Karussell und Story gleich.
+# Quellen: Lasswell, 1948; Adam, 2026; Schulz von Thun, 2001; AIDA
+
+UEBERARBEITEN_SYSTEM = (
+    "Du überarbeitest die Textelemente eines bereits entworfenen organischen Social-Media-Beitrags nach dem "
+    "konkreten Feedback. Überarbeite alle übergebenen Textelemente GEMEINSAM als eine Werbebotschaft (Feed: Headline "
+    "und Caption; Karussell: Headlines und Texte der Karten sowie Caption; Story: Headline und CTA) – für alle "
+    "Formate nach denselben Regeln. Erhalte das bestätigte Thema, Unternehmen, Angebot, Ziel, Tonalität und die "
+    "Anrede. Erfinde keine neuen Fakten. Setze die genannten Verbesserungen gezielt um; was gut ist, bleibt.\n\n"
+    "Unternehmensname (exakte Schreibweise), Ansprache (Du oder Sie) und CI-Vorgaben aus den VERBINDLICHEN "
+    "PROFILVORGABEN bleiben immer unverändert erhalten.\n\n"
+    "Erhalte die kommunikationstheoretische Grundlage: Die Lasswell-Elemente (wer sagt was zu wem mit welcher "
+    "Wirkung) bleiben unverändert; der AIDA-Aufbau bleibt erkennbar (Headline = Attention; Caption bzw. Kartentexte "
+    "= Interest und Desire; Action am Ende der Caption bzw. im CTA der Story); die Textelemente decken zusammen alle "
+    "vier Ebenen nach Schulz von Thun ab (Sache, Selbstoffenbarung, Beziehung, Appell) und sind verständlich "
+    "(einfach, gegliedert, kurz und prägnant, dosiert anregend).\n\n"
+    "Headline und Folgetext bilden eine Einheit: Die Headline kündigt nur an, was Caption bzw. Kartentexte konkret "
+    "einlösen, und der Folgetext löst genau dieses Versprechen ein. Keine Wiederholungen zwischen den Elementen.\n\n"
+    "Für die einzelnen Elemente gilt: Headline kurz und prägnant (vorzugsweise höchstens 5 Wörter, ein übergebenes "
+    "Zeichenlimit einhalten). Caption: Aufbau erhalten bzw. herstellen – erster Absatz Kernaussage mit Emoji, "
+    "Leerzeile, letzter Absatz Frage an die Zielgruppe und konkrete Handlungsaufforderung mit Emoji (Absätze im JSON "
+    "als \\n\\n); verbindlich ist nur ein übergebenes technisches Zeichenlimit – die Längenempfehlung der "
+    "Plattform ist Orientierung: kürze nicht, nur um sie zu erreichen, und streiche keine Profil- oder "
+    "Angebotsangaben; 1 bis 3 zur Marke "
+    "passende Emojis (vorhandene erhalten, sonst ergänzen – außer die CI-Vorgaben untersagen Emojis), keine Hashtags. "
+    "CTA (nur Story): 2–4 Wörter. Karten: Anzahl und Reihenfolge bleiben gleich, jede Karte behält ihren Punkt.\n\n"
+    "Antworte ausschließlich mit validem JSON, das GENAU die Schlüssel des BESTEHENDEN ENTWURFS enthält (z. B. "
+    '{"headline":"...","caption":"..."} oder {"headline":"...","cta":"..."} oder '
+    '{"karten":[{"headline":"...","text":"..."}],"caption":"..."}), ohne Zusatzkommentare.'
+)
+
+
+def ueberarbeiten_anweisung(entwurf: dict, feedback: dict, maximum=None, ohne_hashtags: bool = False,
+                            fakten: str = "", profil: dict = None, headline_max=None) -> str:
+    """3b Überarbeiten – User-Vorlage. entwurf: die Textelemente des Formats (siehe UEBERARBEITEN_SYSTEM)."""
+    def zeile(v):  # Einträge: {"felder": [...], "text": "..."} (ältere Form: reiner Text)
+        if isinstance(v, dict):
+            felder = ", ".join(v.get("felder") or [])
+            return f"- {'[' + felder + '] ' if felder else ''}{v.get('text', '')}"
+        return f"- {v}"
+    vorschlaege = "\n".join(zeile(v) for v in (feedback or {}).get("verbesserungen", []))
     return (
-        f"Schreibe den folgenden Social-Media-Text so um, dass die Leserinnen und Leser durchgängig in {form} "
-        "angesprochen werden. Ändere AUSSCHLIESSLICH die Ansprache und die davon abhängigen Wortformen; Inhalt, "
-        "Fakten, Unternehmensname, Emojis, Hashtags, Absätze und Länge bleiben so weit wie möglich unverändert. Antworte nur "
-        "mit dem umgeschriebenen Text ohne Anführungszeichen."
+        (f"VERBINDLICHE PROFILVORGABEN:\n{profilvorgaben_text(profil)}\n\n" if profil else "")
+        + f"FEEDBACK:\n{vorschlaege or '- (keine konkreten Vorschläge)'}\n\n"
+        f"BESTÄTIGTE FAKTEN / ANGEBOT:\n{fakten or 'keine weiteren Angaben'}\n\n"
+        f"TECHNISCHES ZEICHENLIMIT CAPTION: {maximum if maximum else 'keines'}\n"
+        f"TECHNISCHES ZEICHENLIMIT HEADLINE: {headline_max if headline_max else 'keines'}\n"
+        + ("(Hashtags werden von der App separat verwaltet.)\n" if ohne_hashtags else "")
+        + f"\nBESTEHENDER ENTWURF:\n{json.dumps(entwurf, ensure_ascii=False)}"
     )
 
 
-# --- 3. KUERZEN (nur wenn die App eine Kürzung ausdrücklich auslöst) -------------------------
+# --- 3c. QUALITÄTSSICHERUNG TEXT: KÜRZEN (nur bei überschrittenem Zeichenlimit) --------------
 # Quellen: Schulz von Thun, 2001; Lasswell, 1948; AIDA
 
 KUERZEN_SYSTEM = (
@@ -624,7 +753,7 @@ KUERZEN_SYSTEM = (
 
 def kuerzen_anweisung(text: str, art: str, bereich: str, hashtags_max=None, angebot: str = "",
                       headline: str = "") -> str:
-    """4.5 Kürzen – User-Vorlage. art: was gekürzt wird (z. B. „Überschrift“)."""
+    """3c Kürzen – User-Vorlage. art: was gekürzt wird (z. B. „Überschrift“)."""
     return (
         f"ZEICHENLIMIT: {bereich} Zeichen ({art})"
         + (f", höchstens {hashtags_max} Hashtags" if hashtags_max else "") + "\n"
@@ -638,48 +767,20 @@ def kuerzen_korrektur(laenge: int, bereich: str) -> str:
     return f"Dein Text hat {laenge} Zeichen. Erlaubt sind {bereich}. Bitte korrigieren, nur den Text ausgeben."
 
 
-# --- B. VERGLEICHSVARIANTE FÜR DEN A/B-TEST -----------------------------------------------------
-# Variante B = „nackter“ Prompt OHNE Prompt-Architektur: kein Unternehmensprofil (kein Name, keine Zielgruppe,
-# Tonalität, CI oder Fakten), keine Theorien, keine Gestaltungsregeln, keine Selbstprüfung. B bekommt dieselben
-# Dialogangaben wie A (Thema, Wirkung, Art des Beitrags, Plattform/Format, Angebot, Rückfragen, Personen) als schlichte
-# Stichpunkte. Gleich in A und B (technische Konstanten): Modelle, Bildqualität, JSON-Antwortformat, Bildformat,
-# „kein Text im Bild“ (die App setzt die Headline selbst) und die Kennzeichnung „KI-generiert“.
-BASIS_TEMPERATUR = 0.8
-
-
-def basis_angaben(p: dict) -> str:
-    """Die Dialogangaben als Stichpunkte – ohne Definitionen, Regeln oder Unternehmensdaten."""
-    v = p.get("plattform_vorgaben") or {}
-    personen = p.get("personen_im_bild")
-    zeilen = [
-        ("Plattform", f"{v.get('plattform', 'Instagram')} {v.get('art', 'Feed')}"
-                      + (f", Seitenverhältnis {v['verhaeltnis']}" if v.get("verhaeltnis") else "")),
-        ("Thema", p.get("thema")),
-        ("Ziel", p.get("wirkung_label")),
-        ("Art des Beitrags", p.get("contenttyp_label")),
-        ("Angebot", p.get("angebot")),
-        ("Weitere Angaben", klaerungen_text(p) if p.get("klaerungen") else ""),
-        ("Personen im Bild", "ja" if personen is True else "nein" if personen is False else ""),
-    ]
-    return "\n".join(f"{k}: {w}" for k, w in zeilen if w)
-
-
-def basis_text_prompt(p: dict) -> str:
-    karussell = str(p.get("plattform_format") or "").endswith("_karussell")
+# --- 3d. QUALITÄTSSICHERUNG TEXT: ANREDE-KORREKTUR (nur bei festgestelltem Verstoß) ----------
+# Wird nur aufgerufen, wenn die regelbasierte Prüfung (hinweise.anrede_verstoss) eine falsche Ansprache findet.
+def anrede_korrektur_system(anrede: str) -> str:
+    form = ("die Sie-Form (Sie, Ihnen, Ihr, Ihre …; Verben in der Höflichkeitsform)" if anrede != "Du" else
+            "die Du-Form (du, dich, dir, dein …; Verben in der 2. Person Singular)")
     return (
-        "Erstelle drei unterschiedliche Social-Media-Beiträge.\n" + basis_angaben(p) + "\n\n"
-        "Technisches Antwortformat: ausschließlich JSON "
-        '{"posts":[{"headline":"kurzer Text für das Bild","post_text":"Caption","hashtags":["#..."]'
-        + (',"slides":[{"headline":"Text der Karte","text":"..."}]' if karussell else "") + "}]}"
+        f"Schreibe den folgenden Social-Media-Text so um, dass die Leserinnen und Leser durchgängig in {form} "
+        "angesprochen werden. Ändere AUSSCHLIESSLICH die Ansprache und die davon abhängigen Wortformen; Inhalt, "
+        "Fakten, Unternehmensname, Emojis, Hashtags, Absätze und Länge bleiben so weit wie möglich unverändert. Antworte nur "
+        "mit dem umgeschriebenen Text ohne Anführungszeichen."
     )
 
 
-def basis_bild_prompt(p: dict, karte: str = "") -> str:
-    return ("Erstelle ein Bild für einen Social-Media-Beitrag.\n" + basis_angaben(p)
-            + (f"\n{karte}" if karte else "") + "\nOhne Text im Bild.")
-
-
-# --- 4. BILD (zusammengesetzte Endform) ------------------------------------------------------
+# --- 4. BILDERSTELLUNG (zusammengesetzte Endform; parallel zu 3) -----------------------------
 # Quellen der Gestaltungsprinzipien: 1 Lasswell, 1948; AIDA (Bild = Attention); Schulz von Thun (Selbstoffenbarung);
 #   Meffert et al., 2019 · 2 Kanuri et al., 2024 · 3 Kostyk & Huhmann, 2021 · 4 Dang et al., 2026 · 5 Lee et al., 2024
 
@@ -789,145 +890,7 @@ def bild_prompt(profile: dict, context: dict, post: dict, aenderungswunsch: str 
     )
 
 
-# --- 5. FEEDBACK (Selbstprüfung) ---------------------------------------------------------
-# Kommunikationstheoretische Prüfung zuerst, für Feed, Karussell und Story gleich (alle Textelemente des Formats).
-# Quellen: Lasswell, 1948; Meffert et al., 2019 · Shahbaznezhad et al., 2021 · Schulz von Thun, 2001 · Adam, 2026 ·
-# Kanuri et al., 2024; Kostyk & Huhmann, 2021; Dang et al., 2026 · AIDA
-
-FEEDBACK_SYSTEM = (
-    "Du begutachtest kritisch-konstruktiv einen organischen Instagram-/Facebook-Beitragsentwurf für ein KMU. "
-    "Bewerte ausschließlich die Textelemente des Entwurfs, das bekannte Unternehmensprofil, das Kommunikationsziel "
-    "und – soweit übergeben – Bildbeschreibung, Overlay-Konzept und Formatkonfiguration.\n\n"
-    "TEXTELEMENTE JE FORMAT (für alle Formate gilt dieselbe Prüfung; die Elemente bilden zusammen EINE "
-    "Werbebotschaft):\n"
-    "- Feed: Headline (auf dem Bild) und Caption; der Appell steht am Ende der Caption.\n"
-    "- Karussell: Headlines und Texte der Karten sowie die Caption; der Appell steht am Ende der Caption.\n"
-    "- Story: Headline und CTA (Knopf im Bild); es gibt keine Caption, der CTA trägt den Appell.\n\n"
-    "Prüfe ZUERST kommunikationstheoretisch (Kern der Bewertung):\n"
-    "- Lasswell: Ist in den Textelementen erkennbar, wer (Unternehmen über Name, Produkt, Leistung oder "
-    "Positionierung) was (genau eine zentrale Botschaft = Unteraspekt, konkret umgesetzt) zu wem (auf die Zielgruppe "
-    "zugeschnittene Wortwahl und Beispiele) mit welcher Wirkung (kognitiv: etwas Neues erfahren; affektiv: Sympathie "
-    "oder Vertrauen; konativ: konkrete Handlung) sagt? Stimmen Thema, Angebot, Unternehmen, Zielgruppe und "
-    "Kommunikationsziel überein?\n"
-    "- AIDA: Weckt die Headline (beim Karussell die Titelkarte) mit einem konkreten Versprechen oder einer Frage "
-    "Aufmerksamkeit (Attention)? Knüpfen Caption bzw. Kartentexte direkt daran an (Interest) und zeigen einen belegten "
-    "Nutzen (Desire) – bei der Story leisten das Headline und Bild gemeinsam? Endet die Caption mit einer "
-    "zielgerechten Handlungsaufforderung bzw. enthält der CTA der Story eine (Action)?\n"
-    "- Schulz von Thun, Vier-Seiten-Modell: Enthalten die Textelemente zusammen alle vier Ebenen – mindestens eine "
-    "konkrete Profil- oder Angebotsangabe (Sachebene), eine Aussage, wofür das Unternehmen steht (Selbstoffenbarung; "
-    "bei der Story auch über das Bild), die vorgegebene Anrede (Beziehungsebene) und eine zum Ziel passende "
-    "Handlungsaufforderung, Kaufaufforderung nur bei konativem Ziel oder transaktionalem Contenttyp (Appell)?\n"
-    "- Schulz von Thun, Verständlichkeit: Sind alle Textelemente einfach, gegliedert und geordnet, kurz und prägnant "
-    "und dosiert anregend?\n"
-    "Prüfe danach knapp und konkret:\n"
-    "- Passt der Contenttyp (informativ, interaktional, transaktional) zum Ziel? Ist in der Anfrage ein "
-    "„inhaltlicher_contenttyp“ festgelegt, prüfe stattdessen, ob der Entwurf diese Ausrichtung umsetzt.\n"
-    "- Sind die Textelemente markenkonform und natürlich und nutzen konkrete Angaben aus dem Unternehmensprofil? "
-    "Falls es eine Caption gibt: Folgt sie dem Aufbau Kernaussage mit Emoji, Leerzeile, Schlussabsatz mit Frage "
-    "und konkreter Handlungsaufforderung (Schulz von Thun: Gliederung), hält sie das technische Zeichenlimit ein "
-    "(verbindlich; die Längenempfehlungen der Plattform sind nur Orientierung: verlange keine Kürzung oder "
-    "Verlängerung, nur um einen Längenkorridor zu erreichen, und keine Streichung von Profil- oder Angebotsangaben "
-    "wegen der Länge), und enthält sie "
-    "1 bis 3 passende Emojis (sofern die CI Emojis nicht untersagt)?\n"
-    "- Wiederholungen sind ein Fehler: Wiederholt die Caption die Headline, wiederholt der CTA Headline oder Caption, "
-    "wiederholen sich Karten?\n"
-    "- Löst der Folgetext (Caption bzw. Kartentexte) konkret ein, was die Headline ankündigt (z. B. die angekündigten "
-    "Tipps oder Schritte)? Beim Karussell: Ergeben die Kartenheadlines nacheinander einen roten Faden?\n"
-    "- Könnten Text oder Bild von den Nutzenden als KI-generiert wahrgenommen werden?\n"
-    "- Ergänzen die Textelemente das Bild um relevante Informationen statt das Motiv nur zu wiederholen? "
-    "Unterstützen Bildmotiv, Farbkomplexität, Symmetrie/Helligkeitskontrast und ggf. Overlay die Botschaft? Bewerte "
-    "diese Regeln kontextabhängig, nicht als starre Erfolgsgarantie.\n"
-    "- Werden nur bestätigte Unternehmensdaten verwendet, sind Angebotszeitraum und technische Ausgabevorgaben "
-    "eingehalten?\n\n"
-    "Kennzeichne keine angeblichen Performance-Effekte als erwiesen. Verlange NICHT pauschal menschfreie Bilder "
-    "oder möglichst wenige Farben. Nenne ausschließlich die wichtigsten Verbesserungen; benenne bei Verbesserungen, "
-    "welche Theorie betroffen ist (z. B. „AIDA: …“).\n\n"
-    "Ordne jeden Eintrag den betroffenen Textelementen zu: „felder“ enthält eine oder mehrere IDs aus FELDER "
-    "(z. B. headline, caption, cta, karte_1, karte_2 …). Betrifft ein Punkt mehrere Elemente (z. B. die Caption "
-    "wiederholt die Headline), nenne alle betroffenen IDs. Punkte zum Bild ordnest du dem Textelement zu, das mit "
-    "dem Bild zusammenwirkt.\n\n"
-    "Antworte ausschließlich mit validem JSON und genau diesen Schlüsseln:\n"
-    '{"staerken":[{"felder":["..."],"text":"..."}],"verbesserungen":[{"felder":["..."],"text":"..."}],'
-    '"fazit":"..."}\n'
-    "„staerken“ enthält höchstens 2 Einträge, „verbesserungen“ höchstens 3; beide Arrays dürfen kürzer sein."
-)
-
-
-# --- 5b. ÜBERARBEITEN ----------------------------------------------------------------------
-# Headline und Folgetext gemeinsam überarbeiten, für Feed, Karussell und Story gleich.
-# Quellen: Lasswell, 1948; Adam, 2026; Schulz von Thun, 2001; AIDA
-
-UEBERARBEITEN_SYSTEM = (
-    "Du überarbeitest die Textelemente eines bereits entworfenen organischen Social-Media-Beitrags nach dem "
-    "konkreten Feedback. Überarbeite alle übergebenen Textelemente GEMEINSAM als eine Werbebotschaft (Feed: Headline "
-    "und Caption; Karussell: Headlines und Texte der Karten sowie Caption; Story: Headline und CTA) – für alle "
-    "Formate nach denselben Regeln. Erhalte das bestätigte Thema, Unternehmen, Angebot, Ziel, Tonalität und die "
-    "Anrede. Erfinde keine neuen Fakten. Setze die genannten Verbesserungen gezielt um; was gut ist, bleibt.\n\n"
-    "Unternehmensname (exakte Schreibweise), Ansprache (Du oder Sie) und CI-Vorgaben aus den VERBINDLICHEN "
-    "PROFILVORGABEN bleiben immer unverändert erhalten.\n\n"
-    "Erhalte die kommunikationstheoretische Grundlage: Die Lasswell-Elemente (wer sagt was zu wem mit welcher "
-    "Wirkung) bleiben unverändert; der AIDA-Aufbau bleibt erkennbar (Headline = Attention; Caption bzw. Kartentexte "
-    "= Interest und Desire; Action am Ende der Caption bzw. im CTA der Story); die Textelemente decken zusammen alle "
-    "vier Ebenen nach Schulz von Thun ab (Sache, Selbstoffenbarung, Beziehung, Appell) und sind verständlich "
-    "(einfach, gegliedert, kurz und prägnant, dosiert anregend).\n\n"
-    "Headline und Folgetext bilden eine Einheit: Die Headline kündigt nur an, was Caption bzw. Kartentexte konkret "
-    "einlösen, und der Folgetext löst genau dieses Versprechen ein. Keine Wiederholungen zwischen den Elementen.\n\n"
-    "Für die einzelnen Elemente gilt: Headline kurz und prägnant (vorzugsweise höchstens 5 Wörter, ein übergebenes "
-    "Zeichenlimit einhalten). Caption: Aufbau erhalten bzw. herstellen – erster Absatz Kernaussage mit Emoji, "
-    "Leerzeile, letzter Absatz Frage an die Zielgruppe und konkrete Handlungsaufforderung mit Emoji (Absätze im JSON "
-    "als \\n\\n); verbindlich ist nur ein übergebenes technisches Zeichenlimit – die Längenempfehlung der "
-    "Plattform ist Orientierung: kürze nicht, nur um sie zu erreichen, und streiche keine Profil- oder "
-    "Angebotsangaben; 1 bis 3 zur Marke "
-    "passende Emojis (vorhandene erhalten, sonst ergänzen – außer die CI-Vorgaben untersagen Emojis), keine Hashtags. "
-    "CTA (nur Story): 2–4 Wörter. Karten: Anzahl und Reihenfolge bleiben gleich, jede Karte behält ihren Punkt.\n\n"
-    "Antworte ausschließlich mit validem JSON, das GENAU die Schlüssel des BESTEHENDEN ENTWURFS enthält (z. B. "
-    '{"headline":"...","caption":"..."} oder {"headline":"...","cta":"..."} oder '
-    '{"karten":[{"headline":"...","text":"..."}],"caption":"..."}), ohne Zusatzkommentare.'
-)
-
-
-def ueberarbeiten_anweisung(entwurf: dict, feedback: dict, maximum=None, ohne_hashtags: bool = False,
-                            fakten: str = "", profil: dict = None, headline_max=None) -> str:
-    """5b Überarbeiten – User-Vorlage. entwurf: die Textelemente des Formats (siehe UEBERARBEITEN_SYSTEM)."""
-    def zeile(v):  # Einträge: {"felder": [...], "text": "..."} (ältere Form: reiner Text)
-        if isinstance(v, dict):
-            felder = ", ".join(v.get("felder") or [])
-            return f"- {'[' + felder + '] ' if felder else ''}{v.get('text', '')}"
-        return f"- {v}"
-    vorschlaege = "\n".join(zeile(v) for v in (feedback or {}).get("verbesserungen", []))
-    return (
-        (f"VERBINDLICHE PROFILVORGABEN:\n{profilvorgaben_text(profil)}\n\n" if profil else "")
-        + f"FEEDBACK:\n{vorschlaege or '- (keine konkreten Vorschläge)'}\n\n"
-        f"BESTÄTIGTE FAKTEN / ANGEBOT:\n{fakten or 'keine weiteren Angaben'}\n\n"
-        f"TECHNISCHES ZEICHENLIMIT CAPTION: {maximum if maximum else 'keines'}\n"
-        f"TECHNISCHES ZEICHENLIMIT HEADLINE: {headline_max if headline_max else 'keines'}\n"
-        + ("(Hashtags werden von der App separat verwaltet.)\n" if ohne_hashtags else "")
-        + f"\nBESTEHENDER ENTWURF:\n{json.dumps(entwurf, ensure_ascii=False)}"
-    )
-
-
-# --- 6. WEBSITE_TONALITÄT – app.website_text_abrufen liefert den Seitentext -----------------
-# Die Website wird nur genutzt, um die Tonalität der Unternehmenstexte grob auszulesen. Fakten (Öffnungszeiten,
-# Anschrift, Preise …) kommen ausschließlich aus dem Profil.
-
-WEBSITE_TONALITAET_SYSTEM = (
-    "Du analysierst den bereitgestellten Text einer Unternehmenswebsite AUSSCHLIESSLICH sprachlich: Wie formuliert "
-    "das Unternehmen seine Texte? Beschreibe die Tonalität knapp in 4 bis 6 Stichpunkten:\n"
-    "- Anrede der Leserinnen und Leser (Du, Sie, Ihr oder neutral)\n"
-    "- Satzlänge und Satzbau (z. B. kurz und direkt, ausführlich, viele Aufzählungen)\n"
-    "- Wortwahl (z. B. sachlich, emotional, fachlich, umgangssprachlich, regional)\n"
-    "- Stimmung und Haltung (z. B. herzlich, traditionsbewusst, modern, zurückhaltend)\n"
-    "- Auffälligkeiten wie Ausrufezeichen, Emojis, Wir-Form oder wiederkehrende Formulierungen (höchstens drei "
-    "kurze wörtliche Beispiele)\n\n"
-    "Übernimm KEINE Fakten (keine Öffnungszeiten, Anschrift, Kontaktdaten, Preise, Produkte oder Aktionen). "
-    "Beschreibe nur, was im Text tatsächlich erkennbar ist, und erfinde nichts. Navigation, Cookie-Hinweise und "
-    "Impressumsangaben sind keine Unternehmenstexte und bleiben unberücksichtigt. Ist zu wenig zusammenhängender "
-    "Text vorhanden, antworte genau: „Zu wenig Text, um die Tonalität zu bestimmen.“\n\n"
-    "Antworte als kurze Stichpunktliste auf Deutsch, ohne Einleitung."
-)
-
-
-# --- 7. FAKTENCHECK – vor der Freigabe, nur gegen das Profil ---------------------------------
+# --- 5. FAKTENCHECK – vor der Freigabe, nur gegen das Profil ---------------------------------
 
 FAKTENCHECK_SYSTEM = (
     "Du prüfst einen organischen Social-Media-Beitrag auf KONKRETE sachliche Widersprüche gegenüber übergebenen "
@@ -948,3 +911,44 @@ FAKTENCHECK_SYSTEM = (
     "Erlaubte Werte von „typ“: „widerspruch“, „unbelegt“; von „quelle“: „Profil“, „keine“. "
     "Bei keinen Befunden exakt {\"befunde\":[]}."
 )
+
+
+# --- B. VERGLEICHSVARIANTE FÜR DEN A/B-TEST -----------------------------------------------------
+# Variante B = „nackter“ Prompt OHNE Prompt-Architektur: kein Unternehmensprofil (kein Name, keine Zielgruppe,
+# Tonalität, CI oder Fakten), keine Theorien, keine Gestaltungsregeln, keine Selbstprüfung. B bekommt dieselben
+# Dialogangaben wie A (Thema, Wirkung, Art des Beitrags, Plattform/Format, Angebot, Rückfragen, Personen) als schlichte
+# Stichpunkte. Gleich in A und B (technische Konstanten): Modelle, Bildqualität, JSON-Antwortformat, Bildformat,
+# „kein Text im Bild“ (die App setzt die Headline selbst) und die Kennzeichnung „KI-generiert“.
+BASIS_TEMPERATUR = 0.8
+
+
+def basis_angaben(p: dict) -> str:
+    """Die Dialogangaben als Stichpunkte – ohne Definitionen, Regeln oder Unternehmensdaten."""
+    v = p.get("plattform_vorgaben") or {}
+    personen = p.get("personen_im_bild")
+    zeilen = [
+        ("Plattform", f"{v.get('plattform', 'Instagram')} {v.get('art', 'Feed')}"
+                      + (f", Seitenverhältnis {v['verhaeltnis']}" if v.get("verhaeltnis") else "")),
+        ("Thema", p.get("thema")),
+        ("Ziel", p.get("wirkung_label")),
+        ("Art des Beitrags", p.get("contenttyp_label")),
+        ("Angebot", p.get("angebot")),
+        ("Weitere Angaben", klaerungen_text(p) if p.get("klaerungen") else ""),
+        ("Personen im Bild", "ja" if personen is True else "nein" if personen is False else ""),
+    ]
+    return "\n".join(f"{k}: {w}" for k, w in zeilen if w)
+
+
+def basis_text_prompt(p: dict) -> str:
+    karussell = str(p.get("plattform_format") or "").endswith("_karussell")
+    return (
+        "Erstelle drei unterschiedliche Social-Media-Beiträge.\n" + basis_angaben(p) + "\n\n"
+        "Technisches Antwortformat: ausschließlich JSON "
+        '{"posts":[{"headline":"kurzer Text für das Bild","post_text":"Caption","hashtags":["#..."]'
+        + (',"slides":[{"headline":"Text der Karte","text":"..."}]' if karussell else "") + "}]}"
+    )
+
+
+def basis_bild_prompt(p: dict, karte: str = "") -> str:
+    return ("Erstelle ein Bild für einen Social-Media-Beitrag.\n" + basis_angaben(p)
+            + (f"\n{karte}" if karte else "") + "\nOhne Text im Bild.")
