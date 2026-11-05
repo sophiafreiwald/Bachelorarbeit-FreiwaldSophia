@@ -92,7 +92,8 @@ WEBSITE_TONALITAET_SYSTEM = (
 
 # --- 1. DIALOG ------------------------------------------------------------------------------
 # Ablauf (Reihenfolge legt app.naechster_schritt fest; Vorgehen nach Eiring, 2026):
-# Beitrag oder nur Ideen → THEMA → WIRKUNG (Ziel wird abgeleitet) → Art des Beitrags → Format → Inhaltsart
+# Beitrag oder nur Ideen → THEMA → WIRKUNG (Ziel wird abgeleitet) → Art des Beitrags → Format (Inhalt: Bild + Caption,
+# Story nur Bild)
 # → Personen im Bild → KLÄRUNG → Zusammenfassung. Die Zielgruppe stammt aus der Registrierung.
 
 # Zieloptionen = psychographische Ziele nach Meffert et al. (2019)
