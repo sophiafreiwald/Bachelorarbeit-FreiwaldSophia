@@ -1777,8 +1777,7 @@ def naechster_schritt(ctx: dict) -> str:
     0. Fertiger Beitrag oder nur Ideen? – „Nur Ideen“: Format wählen, dann direkt Ideen (ohne weitere Fragen).
     Beitrag: Thema → 1. Wirkungsebene (Bruhn, 2014) → Ziel (Meffert et al., 2019; nur die zur Wirkung passenden)
     → Art des Beitrags (Shahbaznezhad et al., 2021) → 2. Zielgruppe (aus dem
-    Profil, in der Zusammenfassung sichtbar) → 3. Plattform/Format → 4. Contentart (Bild/Caption/beides) →
-    Personen im Bild → Klärung offener Punkte durch die KI (White et al., 2023) → Zusammenfassung → 5. Kalender.
+    Profil, in der Zusammenfassung sichtbar) → 3. Plattform/Format → Personen im Bild → Klärung offener Punkte durch die KI (White et al., 2023) → Zusammenfassung → 5. Kalender.
     Erzeugt wird erst nach bestätigter Zusammenfassung."""
     if ctx.get("content_type") == "idee":
         if not ctx.get("plattform_format"):
@@ -1806,7 +1805,8 @@ def naechster_schritt(ctx: dict) -> str:
         # Story (Instagram und Facebook): ohne Caption – die Frage Bild/Caption entfällt; Inhaltsart „Nur Bild“
         ctx["content_type"] = "bild"
     if not ctx.get("content_type"):
-        return "content_type"
+        # Keine Auswahl Bild/Caption mehr: ein Beitrag besteht immer aus Bild und Caption (Story: nur Bild, s. o.)
+        ctx["content_type"] = "beides"
     if bild_erforderlich(ctx.get("content_type")) and ctx.get("personen_im_bild") is None:
         return "personen_im_bild"
     if not ctx.get("klaerung_fertig"):
@@ -2007,8 +2007,8 @@ def angabe_aendern(schritt: str):
     if schritt == "kommunikationsziel":  # Ziel ändern = bei der Wirkung beginnen
         ctx.pop("wirkungsebene", None)
         ctx.get("fragen", {}).pop("wirkungsebene", None)
-    if schritt == "content_type":
-        ctx.pop("personen_im_bild", None)
+    if schritt == "plattform_format":  # Story ↔ Feed: Inhalt (Bild bzw. Bild + Caption) neu ableiten
+        ctx.pop("content_type", None)
     if schritt == "inhaltlicher_contenttyp":
         ctx.pop("contenttyp_quelle", None)
 
@@ -2532,7 +2532,7 @@ def zeige_zusammenfassung(ctx: dict):
               # Zielgruppe (Eiring, 2026, Schritt 2) kommt aus der Registrierung; ändern im Profil
               ("Zielgruppe", (zielgruppe or "nicht angegeben") + " (aus deinem Profil)", None),
               ("Format", format_label(ctx.get("plattform_format")) + (f" · {verhaeltnis_aus(ctx)}" if ctx.get("plattform_format") else ""), "plattform_format"),
-              ("Inhalt", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), "content_type")]
+              ("Inhalt", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), None)]  # fest: Bild + Caption
     if bild_erforderlich(ctx.get("content_type")):
         zeilen.append(("Personen im Bild", personen, "personen_im_bild"))
     for k in ctx.get("klaerungen", []):
@@ -2633,27 +2633,15 @@ def render_chat_page():
             with st.container(key="chat_chips"):
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("Fertigen Beitrag erstellen", key="chip_modus_beitrag", width="stretch"):
+                    if st.button("Beitrag erstellen", key="chip_modus_beitrag", width="stretch"):
                         ctx["modus"] = "beitrag"
-                        chip_antwort("Ich möchte einen fertigen Beitrag erstellen.")
+                        chip_antwort("Ich möchte einen Beitrag erstellen.")
                         st.rerun()
                 with c2:
                     if st.button(CONTENT_TYPE_LABELS["idee"], key="chip_ct_idee", width="stretch"):
                         ctx["content_type"] = "idee"
                         chip_antwort(f"Ich möchte: {CONTENT_TYPE_LABELS['idee']}.")
                         st.rerun()
-
-        elif schritt == "content_type":
-            with st.container(key="chat_chips"):
-                st.caption("In welcher Form soll die Botschaft vermittelt werden?")
-                arten = {k: v for k, v in CONTENT_TYPE_LABELS.items() if k != "idee"}
-                chip_cols = st.columns(len(arten))
-                for col, (key, label) in zip(chip_cols, arten.items()):
-                    with col:
-                        if st.button(label, key=f"chip_ct_{key}", width='stretch'):
-                            ctx["content_type"] = key
-                            chip_antwort(f"Ich möchte: {label}.")
-                            st.rerun()
 
         elif schritt == "plattform_format":
             with st.container(key="chat_chips"):
