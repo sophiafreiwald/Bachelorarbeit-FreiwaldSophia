@@ -541,8 +541,7 @@ def generiere_vorschlaege(profile: dict, context: dict, anzahl: int = 3, bisheri
         "anrede": profile.get("anrede", "Sie"),
         "strategie": profile.get("strategie", ""),
         "positionierung": profile.get("positionierung", ""),
-        "produkte": profile.get("produkte", ""),
-        "fakten": prompts.profil_fakten_text(profile),  # Anschrift, Öffnungszeiten, Kontakt, weitere Fakten
+        "fakten": prompts.profil_fakten_text(profile),  # Anschrift, Öffnungszeiten, Kontakt
         "stilbeispiel": profile.get("stilbeispiel", ""),
         "ci_besonderheiten": profile.get("ci_besonderheiten", ""),
         "pflicht_hashtags": hinweise.pflicht_hashtags(profile),
@@ -1287,7 +1286,7 @@ def hole_feedback(profile: dict, context: dict, entwurf: dict, client=None) -> d
     spec = spec_fuer(context.get("plattform_format"), verhaeltnis_aus(context))
     daten = {
         "unternehmen": {**{k: profile.get(k, "") for k in ("unternehmensname", "branche", "strategie",
-                                                           "positionierung", "produkte", "zielgruppe",
+                                                           "positionierung", "zielgruppe",
                                                            "tone_of_voice", "anrede", "ci_besonderheiten")},
                         "fakten": prompts.profil_fakten(profile)},
         "anfrage": {**{k: context.get(k, "") for k in ("thema", "wirkungsebene", "kommunikationsziel", "inhaltlicher_contenttyp")},
@@ -1562,7 +1561,8 @@ def pruefe_fakten(profile: dict, entwurf: dict) -> list:
     client = _get_openai_client()
     daten = {
         "PROFIL": {"Unternehmensname": profile.get("unternehmensname", ""),
-                   "Produkte/Leistungen": profile.get("produkte", ""), **prompts.profil_fakten(profile)},
+                   # Angebot/Leistungen stehen seit dem Profil-Umbau in der Positionierung („Angebot: …“)
+                   "Positionierung": profile.get("positionierung", ""), **prompts.profil_fakten(profile)},
         "HEUTE": datetime.date.today().isoformat(),
         "BEITRAG": entwurf,
     }
