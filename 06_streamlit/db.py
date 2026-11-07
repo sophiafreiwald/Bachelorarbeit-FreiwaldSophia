@@ -5,7 +5,24 @@ import secrets
 import sqlite3
 from contextlib import contextmanager
 
-DB_PATH = os.environ.get("CONTENT_ENGINE_DB", "content_engine.db")
+# Datenbank liegt neben db.py – unabhängig davon, aus welchem Ordner die App gestartet wird
+# (lokal aus 06_streamlit, auf Streamlit Community Cloud aus dem Repository-Hauptordner).
+APP_VERZEICHNIS = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.environ.get("CONTENT_ENGINE_DB", os.path.join(APP_VERZEICHNIS, "content_engine.db"))
+
+
+def portabler_pfad(pfad: str) -> str:
+    """Gespeicherte absolute Dateipfade (z. B. vom eigenen Mac: …/06_streamlit/uploads/logos/4.png) auf den
+    uploads-Ordner dieser Installation abbilden, damit Logos, Schriften und Bilder auch nach dem Hochladen
+    (Streamlit Community Cloud) gefunden werden. Existiert die Datei, bleibt der Pfad unverändert."""
+    if not pfad or os.path.exists(pfad) or pfad.startswith(("http://", "https://")):
+        return pfad
+    teile = pfad.replace("\\", "/").split("/uploads/", 1)
+    if len(teile) == 2:
+        kandidat = os.path.join(APP_VERZEICHNIS, "uploads", *teile[1].split("/"))
+        if os.path.exists(kandidat):
+            return kandidat
+    return pfad
 
 
 @contextmanager
@@ -194,7 +211,13 @@ def verify_login(email: str, password: str):
 def get_profile(user_id: int) -> dict:
     with get_conn() as conn:
         row = conn.execute("SELECT * FROM profiles WHERE user_id = ?", (user_id,)).fetchone()
-        return dict(row) if row else {}
+        if not row:
+            return {}
+        profil = dict(row)
+        for feld in ("logo_path", "ci_schrift_datei"):  # Pfade vom eigenen Rechner auch online auflösen
+            if profil.get(feld):
+                profil[feld] = portabler_pfad(profil[feld])
+        return profil
 
 
 def save_profile(user_id: int, **fields):

@@ -50,7 +50,6 @@ def profil_fakten(profile: dict) -> dict:
         "Öffnungszeiten": oeffnungszeiten_text(profile),
         "Telefon": profile.get("telefon") or "",
         "E-Mail": profile.get("kontakt_email") or "",
-        "Weitere Fakten": profile.get("fakten") or "",
     }
     return {k: v.strip() for k, v in fakten.items() if v and v.strip()}
 
@@ -146,7 +145,6 @@ def _dialog_kontext(profile: dict, ctx: dict, schritt: str = "") -> str:
             "Social-Media-Strategie (Ziele)": profile.get("strategie", ""),
             "Positionierung": profile.get("positionierung", ""),
             "Zielgruppe allgemein": profile.get("zielgruppe", ""),
-            "Produkte/Leistungen": profile.get("produkte", ""),
             **profil_fakten(profile),
         },
         "BISHERIGE_ANGABEN": {k: ctx.get(k) for k in ("content_type", "plattform_format", "thema", "angebot",
@@ -308,7 +306,7 @@ def _unternehmensprofil_block(p: dict) -> str:
     """{UNTERNEHMENSPROFIL}: alle Profilangaben aus der Datenbank, je Angabe eine Zeile."""
     zeilen = [("Name", p.get("unternehmensname")), ("Branche", p.get("branche")),
               ("Positionierung", p.get("positionierung")), ("Social-Media-Strategie (Ziele)", p.get("strategie")),
-              ("Produkte/Leistungen", p.get("produkte")), ("Tone of Voice", p.get("tone_of_voice"))]
+              ("Tone of Voice", p.get("tone_of_voice"))]
     zeilen += list(profil_fakten(p).items())
     text = "\n".join(f"- {k}: {str(v).strip()}" for k, v in zeilen if v and str(v).strip())
     return text or "- keine Angaben"
@@ -403,7 +401,7 @@ STORY: Hat der Beitrag keine Caption (Story), gelten W2 bis W5 für Headline, CT
 W6. FAKTEN UND PROFILVORGABEN: Verbindlich sind die vom Unternehmen übergebenen Fakten, sein Angebot, das festgelegte Kommunikationsziel sowie explizite CI- und Sprachvorgaben. Die VERBINDLICHEN PROFILVORGABEN haben Vorrang vor allen Gestaltungsregeln: Unternehmensname immer in exakt der übergebenen Schreibweise, die vorgegebene Ansprache (Du oder Sie) ohne Ausnahme in jedem Textelement, CI-Vorgaben immer einhalten. Erfinde keine Preise, Leistungsmerkmale, Verfügbarkeiten, Auszeichnungen, Erfahrungsberichte, Kunden, Öffnungszeiten, Aktionen oder angeblichen Live-Trends.
 W7. Nutze nur bekannte Zielgruppenmerkmale; leite aus einem groben Alter keine spezifischen persönlichen Vorlieben oder psychologischen Eigenschaften ab.
 W8. Beachte HEUTE sowie Start und Ende zeitlich begrenzter Angebote.
-W9. Die Caption („post_text“) ergänzt den Text auf dem Bild und das Bildmotiv um relevante Informationen, einen Kontext oder einen konkreten Mehrwert. Beschreibe nicht nur, was sichtbar ist; blähe den Text aber auch nicht künstlich auf. Die Angaben aus dem UNTERNEHMENSPROFIL (Datenbank) sind die unerlässliche Grundlage jeder Caption: Baue mindestens eine konkrete, zum Unteraspekt passende Angabe daraus ein (z. B. Produkte/Leistungen, Positionierung, Standort, Öffnungszeiten, Kontakt oder weitere Fakten) und formuliere sie so, dass der Beitrag erkennbar zu genau diesem Unternehmen gehört und nicht austauschbar ist. Baue Profilangaben natürlich in den Satz ein, statt sie anzuhängen (nicht „… – bei [Unternehmen].“). Verwende Profilangaben inhaltlich korrekt und erfinde keine fehlenden.
+W9. Die Caption („post_text“) ergänzt den Text auf dem Bild und das Bildmotiv um relevante Informationen, einen Kontext oder einen konkreten Mehrwert. Beschreibe nicht nur, was sichtbar ist; blähe den Text aber auch nicht künstlich auf. Die Angaben aus dem UNTERNEHMENSPROFIL (Datenbank) sind die unerlässliche Grundlage jeder Caption: Baue mindestens eine konkrete, zum Unteraspekt passende Angabe daraus ein (z. B. Angebot, Positionierung, Standort, Öffnungszeiten oder Kontakt) und formuliere sie so, dass der Beitrag erkennbar zu genau diesem Unternehmen gehört und nicht austauschbar ist. Baue Profilangaben natürlich in den Satz ein, statt sie anzuhängen (nicht „… – bei [Unternehmen].“). Verwende Profilangaben inhaltlich korrekt und erfinde keine fehlenden.
 W10. Wähle die Länge der Caption („post_text“, ohne Hashtags) nach den Längenempfehlungen der Plattform in der FORMAT_KONFIGURATION – Empfehlungen, keine harten Grenzen: den KURZEN Korridor für Reichweite und Engagement (z. B. interaktionale Beiträge, Ziel Bekanntheit, rein visuelle oder emotionale Motive), den LANGEN Korridor, wenn der Inhalt es sinnvoll macht (Instagram: informativer Content; Facebook: Angebote; z. B. angekündigte Tipps, Schritte, Details oder Angaben aus dem Unternehmensprofil). Braucht die Kernbotschaft des Unteraspekts mehr Platz, darf die Caption den kurzen Korridor überschreiten – die Kernbotschaft hat Vorrang vor der Kürze. Stelle Aufhänger und zentrale Aussage an den Anfang, da nur die ersten Zeichen ohne Tippen auf „mehr“ sichtbar sind. Gliedere längere Captions mit kurzen Absätzen oder Aufzählungen. Halte das technische Limit aus der FORMAT_KONFIGURATION ein.
 W11. Verwende die vorgegebene Anrede und Tonalität. Vermeide austauschbare Werbefloskeln und unbelegte Superlative. Setze eine zum Ziel passende Handlungsaufforderung ein, aber erzwinge keinen Kaufaufruf bei informativen Beiträgen. EMOJIS: Setze in jeder Caption 1 bis 3 Emojis ein, die zu Marke, Thema und Tonalität passen (z. B. als Gliederungszeichen vor Tipps oder zur Betonung einzelner Aussagen), nicht als Ersatz für Wörter. Untersagen die CI_VORGABEN Emojis, verwende keine.
 W12. Text auf dem Bild („headline“): Er wird von der App gut sichtbar zentral im Bild platziert; halte ihn kurz, damit er das Bildmotiv nicht überlagert und nicht im Fokus steht – das Motiv trägt den Beitrag, der Text begleitet ihn.
