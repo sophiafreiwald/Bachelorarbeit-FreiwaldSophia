@@ -12,3 +12,6 @@ venv/
 
 # Geheime Schlüssel (z. B. OpenAI-API-Key)
 .env
+
+# Lokale Streamlit-Secrets (online stehen sie in den App-Einstellungen)
+.streamlit/secrets.toml

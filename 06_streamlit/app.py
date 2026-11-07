@@ -1242,6 +1242,7 @@ def bild_fuer_anzeige(image_url: str):
     Online-Adresse werden über den Dateinamen auf die lokale Kopie in uploads/generated abgebildet."""
     if not image_url:
         return None
+    image_url = db.portabler_pfad(image_url)  # gespeicherter Pfad vom eigenen Rechner → uploads dieser Installation
     if os.path.exists(image_url):
         return image_url
     lokal = os.path.join(GENERIERTE_BILDER_VERZEICHNIS, os.path.basename(image_url).split("_", 1)[-1])
