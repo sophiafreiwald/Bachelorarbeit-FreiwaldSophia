@@ -347,7 +347,7 @@ def _plattform_format_text(p: dict) -> str:
 #   ABSCHNITT 1 RAHMENMODELL: R1 Zielbild: Bruhn, 2014; Meffert et al., 2019 · R2 Contenttyp: Shahbaznezhad et al.,
 #   2021 · R3 Plattform inhaltlich: Eiring, 2026 · R4 Format: Meta
 #   ABSCHNITT 2 WERBEBOTSCHAFT: W1 Unteraspekte: Lasswell; Shahbaznezhad et al., 2021 · W2 Lasswell, 1948/1960;
-#   Scheufele, 2014 · W3 Vier-Seiten-Modell, W4 Verständlichkeit: Schulz von Thun, 1981/2013 · W5 AIDA: Esch, 2018 ·
+#   W3 Vier-Seiten-Modell, W4 Verständlichkeit: Schulz von Thun, 1981/2013 · W5 AIDA: Esch, 2018 ·
 #   W9 Caption ergänzt das Bild: Adam, 2026 · W10 Caption-Länge: Meta · W11 Anrede/Stil/Appell: Schulz von Thun; AIDA ·
 #   W12 Text im Bild, W14 Overlay-Modus: Dang et al., 2026 · W13 Headline/Caption als Einheit: AIDA; Lasswell ·
 #   W15 Authentizität: Lee et al., 2024 · W17 Markenpersönlichkeit: Lee et al., 2018 · „Schritt für Schritt“:
