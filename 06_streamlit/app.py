@@ -2237,7 +2237,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
                    "die Veröffentlichung simuliert.")
         k1, k2 = st.columns(2)
         with k1:
-            w["instagram_account_id"] = st.text_input("Instagram Business Account ID",
+            w["instagram_account_id"] = st.text_input("Instagram-Business-Account-ID",
                                                       profile.get("instagram_account_id", ""))
         with k2:
             w["facebook_page_id"] = st.text_input("Facebook-Seiten-ID", profile.get("facebook_page_id", ""))
