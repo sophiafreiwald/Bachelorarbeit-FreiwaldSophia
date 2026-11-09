@@ -2,27 +2,81 @@ import datetime
 import hashlib
 import os
 import secrets
+import shutil
 import sqlite3
 from contextlib import contextmanager
 
-# Datenbank liegt neben db.py – unabhängig davon, aus welchem Ordner die App gestartet wird
-# (lokal aus 06_streamlit, auf Streamlit Community Cloud aus dem Repository-Hauptordner).
+# Speicherort der Daten (Datenbank + uploads):
+#   - lokal und auf Streamlit Community Cloud: neben db.py (wie bisher)
+#   - auf Railway mit Volume: im Volume (RAILWAY_VOLUME_MOUNT_PATH setzt Railway automatisch) oder in einem
+#     frei gewählten Ordner (DATEN_VERZEICHNIS). Dort bleiben die Daten bei Neustarts und neuen Commits erhalten.
 APP_VERZEICHNIS = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("CONTENT_ENGINE_DB", os.path.join(APP_VERZEICHNIS, "content_engine.db"))
+DATEN_VERZEICHNIS = os.path.abspath(os.environ.get("DATEN_VERZEICHNIS") or os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+                                    or APP_VERZEICHNIS)
+UPLOADS_VERZEICHNIS = os.path.join(DATEN_VERZEICHNIS, "uploads")
+DB_PATH = os.environ.get("CONTENT_ENGINE_DB", os.path.join(DATEN_VERZEICHNIS, "content_engine.db"))
+
+
+def _startdaten_kopieren():
+    """Liegen die Daten außerhalb des App-Ordners (Volume), wird beim allerersten Start die Datenbank aus dem
+    Repository als Startstand übernommen. Danach wird sie NIE überschrieben – neue Commits ändern die Daten
+    also nicht. Dateien aus uploads/ (Logos, Schriften, Bilder der Testprofile) werden nur ergänzt, wenn sie
+    im Volume noch fehlen."""
+    if DATEN_VERZEICHNIS == APP_VERZEICHNIS:
+        return
+    os.makedirs(DATEN_VERZEICHNIS, exist_ok=True)
+    start_db = os.path.join(APP_VERZEICHNIS, "content_engine.db")
+    if not os.path.exists(DB_PATH) and os.path.exists(start_db):
+        shutil.copy2(start_db, DB_PATH)
+    quelle = os.path.join(APP_VERZEICHNIS, "uploads")
+    for ordner, _, dateien in os.walk(quelle):
+        ziel_ordner = os.path.join(UPLOADS_VERZEICHNIS, os.path.relpath(ordner, quelle))
+        os.makedirs(ziel_ordner, exist_ok=True)
+        for name in dateien:
+            ziel = os.path.join(ziel_ordner, name)
+            if not os.path.exists(ziel):
+                shutil.copy2(os.path.join(ordner, name), ziel)
+
+
+_startdaten_kopieren()
 
 
 def portabler_pfad(pfad: str) -> str:
     """Gespeicherte absolute Dateipfade (z. B. vom eigenen Mac: …/06_streamlit/uploads/logos/4.png) auf den
-    uploads-Ordner dieser Installation abbilden, damit Logos, Schriften und Bilder auch nach dem Hochladen
-    (Streamlit Community Cloud) gefunden werden. Existiert die Datei, bleibt der Pfad unverändert."""
+    uploads-Ordner dieser Installation abbilden, damit Logos, Schriften und Bilder auch online gefunden
+    werden. Existiert die Datei, bleibt der Pfad unverändert."""
     if not pfad or os.path.exists(pfad) or pfad.startswith(("http://", "https://")):
         return pfad
     teile = pfad.replace("\\", "/").split("/uploads/", 1)
     if len(teile) == 2:
-        kandidat = os.path.join(APP_VERZEICHNIS, "uploads", *teile[1].split("/"))
-        if os.path.exists(kandidat):
-            return kandidat
+        for basis in (UPLOADS_VERZEICHNIS, os.path.join(APP_VERZEICHNIS, "uploads")):
+            kandidat = os.path.join(basis, *teile[1].split("/"))
+            if os.path.exists(kandidat):
+                return kandidat
     return pfad
+
+
+def daten_export_zip() -> bytes:
+    """ZIP mit einer konsistenten Kopie der Datenbank und dem uploads-Ordner (für die Auswertung)."""
+    import io
+    import tempfile
+    import zipfile
+    puffer = io.BytesIO()
+    with tempfile.TemporaryDirectory() as tmp:
+        kopie = os.path.join(tmp, "content_engine.db")
+        quelle, ziel = sqlite3.connect(DB_PATH), sqlite3.connect(kopie)
+        try:
+            quelle.backup(ziel)
+        finally:
+            quelle.close()
+            ziel.close()
+        with zipfile.ZipFile(puffer, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(kopie, "content_engine.db")
+            for ordner, _, dateien in os.walk(UPLOADS_VERZEICHNIS):
+                for name in dateien:
+                    pfad = os.path.join(ordner, name)
+                    z.write(pfad, os.path.join("uploads", os.path.relpath(pfad, UPLOADS_VERZEICHNIS)))
+    return puffer.getvalue()
 
 
 @contextmanager
