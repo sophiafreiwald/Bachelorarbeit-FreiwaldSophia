@@ -389,7 +389,7 @@ def render_instagram_simulation(unternehmensname: str, caption: str, bild_bytes=
     """Rein clientseitige Simulation der Instagram-Veröffentlichung.
 
     Es wird bewusst KEIN echter API-Call an die Meta Graph API gemacht –
-    das würde ein verknüpftes Instagram Business Account je Testnutzer:in
+    das würde einen verknüpften Instagram-Business-Account je Testnutzer:in
     voraussetzen, was im Rahmen der Evaluation nicht praktikabel ist.
     """
     with st.container(border=True):
