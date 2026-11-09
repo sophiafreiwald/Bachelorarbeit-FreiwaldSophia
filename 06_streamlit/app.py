@@ -15,6 +15,7 @@ import base64
 import calendar
 import concurrent.futures
 import datetime
+import hmac
 import html
 import io
 import json
@@ -63,7 +64,7 @@ OPENAI_MODEL = "gpt-6-luna"
 OPENAI_IMAGE_MODEL = "gpt-image-2.5-flare"
 OPENAI_IMAGE_QUALITY = "medium"
 GENERIERTE_BILDER_VERZEICHNIS = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "uploads", "generated"
+    db.UPLOADS_VERZEICHNIS, "generated"
 )
 
 db.init_db()
@@ -281,7 +282,7 @@ def plattform_vorgaben(key: str, verhaeltnis: str = "") -> dict:
 def bild_erforderlich(content_type: str) -> bool:
     return content_type in ("bild", "beides")
 NAV_ITEMS = [("chat", "Beitrag erstellen"), ("vorschlaege", "Posting Vorschläge"), ("kalender", "Content-Kalender"), ("profil", "Profil")]
-LOGO_VERZEICHNIS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "logos")
+LOGO_VERZEICHNIS = os.path.join(db.UPLOADS_VERZEICHNIS, "logos")
 
 # --- Design-Tokens & globales CSS: ausgelagert in style.css --------------
 
@@ -2374,6 +2375,25 @@ def render_anmelden():
         if not db.get_profile(user_id).get("onboarding_done"):
             st.session_state.page = "onboarding"
         st.rerun()
+    daten_export()
+
+
+def daten_export():
+    """Versteckter Datenexport für die Auswertung: nur mit ?export=1 im Link UND gesetztem ADMIN_PASSWORT
+    (Umgebungsvariable). Lädt Datenbank + uploads als ZIP herunter."""
+    admin_passwort = os.environ.get("ADMIN_PASSWORT", "")
+    if st.query_params.get("export") != "1" or not admin_passwort:
+        return
+    with st.expander("Datenexport (Auswertung)"):
+        eingabe = st.text_input("Admin-Passwort", type="password", key="admin_passwort")
+        if not eingabe:
+            return
+        if not hmac.compare_digest(eingabe.encode(), admin_passwort.encode()):
+            st.error("Falsches Passwort.")
+            return
+        st.download_button("Daten herunterladen (Datenbank + Bilder)", db.daten_export_zip(),
+                           file_name=f"content_engine_{datetime.date.today().isoformat()}.zip",
+                           mime="application/zip", width="stretch")
 
 
 def render_registrieren():
