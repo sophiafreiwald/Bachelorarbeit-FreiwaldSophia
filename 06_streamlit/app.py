@@ -2312,7 +2312,7 @@ MARKENFLAECHE_HTML = f"""
       und Facebook veröffentlichen – mit deinem Unternehmensprofil als Grundlage.</p>
     <div class="ce-login-features">
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Ideen im Dialog</b><small>Die Content-Engine stellt gezielte Fragen an Sie, ohne dass du ein Social-Media-Profi sein musst.</small></div></div>
+        <div><b>Ideen im Dialog</b><small>Die Content-Engine stellt gezielte Fragen an Dich, ohne dass Du ein Social-Media-Profi sein musst.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Eigenes Foto oder KI-Bild</b><small>Werbebild mit Headline, Logo und deinen CI-Farben.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
