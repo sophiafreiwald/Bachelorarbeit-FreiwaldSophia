@@ -2693,7 +2693,6 @@ def render_chat_page():
                             # „Nur Idee“: keine Fragen nach Thema und Ziel – direkt verschiedene Contentvorschläge
                             ideen_direkt_erzeugen(ctx)
                         st.rerun()
-                st.caption(" · ".join(vorgaben_zusammenfassung(spec)))
 
         elif schritt == "personen_im_bild":
             with st.container(key="chat_chips"):
