@@ -2183,21 +2183,21 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     alter = st.pills("Welche Altersgruppen sollen angesprochen werden? * (mehrere möglich)", ALTERSGRUPPEN,
                      selection_mode="multi", default=alter_vorher)
     zg["alter"] = ", ".join(alter or [])
-    # Je Zeile eigene Spalten, unten ausgerichtet – so stehen die Felder auch bei umbrechenden Labels auf einer Linie
-    z1, z2 = st.columns(2, vertical_alignment="bottom")
+    # Mehrzeilige Felder, deren Höhe sich dem Inhalt anpasst (langer Text bleibt vollständig sichtbar)
+    z1, z2 = st.columns(2, vertical_alignment="top")
     with z1:
-        zg["wer"] = st.text_input("Wer sind die Personen, die angesprochen werden sollen? *", zg.get("wer", ""),
-                                  placeholder="z. B. Berufstätige und Familien aus der Region")
+        zg["wer"] = st.text_area("Wer sind die Personen, die angesprochen werden sollen? *", zg.get("wer", ""),
+                                  placeholder="z. B. Berufstätige und Familien aus der Region", height="content")
     with z2:
-        zg["warum"] = st.text_input("Warum kommen diese Personen zu euch? *", zg.get("warum", ""),
-                                    placeholder="z. B. Qualität, persönliche Beratung, Nähe")
-    z3, z4 = st.columns(2, vertical_alignment="bottom")
+        zg["warum"] = st.text_area("Warum kommen diese Personen zu euch? *", zg.get("warum", ""),
+                                    placeholder="z. B. Qualität, persönliche Beratung, Nähe", height="content")
+    z3, z4 = st.columns(2, vertical_alignment="top")
     with z3:
-        zg["nutzung"] = st.text_input("Wie nutzen diese Personen euer Angebot?", zg.get("nutzung", ""),
-                                      placeholder="z. B. regelmäßig, mit Termin, mit der Familie")
+        zg["nutzung"] = st.text_area("Wie nutzen diese Personen euer Angebot?", zg.get("nutzung", ""),
+                                      placeholder="z. B. regelmäßig, mit Termin, mit der Familie", height="content")
     with z4:
-        zg["zeitpunkt"] = st.text_input("Wann sehen diese Personen eure Beiträge?", zg.get("zeitpunkt", ""),
-                                        placeholder="z. B. abends am Handy")
+        zg["zeitpunkt"] = st.text_area("Wann sehen diese Personen eure Beiträge?", zg.get("zeitpunkt", ""),
+                                        placeholder="z. B. abends am Handy", height="content")
     w["zielgruppe"] = leitfragen_text(zg, ZIELGRUPPE_FELDER)
     w["_zielgruppe_teile"] = {**zg, "alter_liste": list(alter or [])}
     w["anrede"] = st.radio(
