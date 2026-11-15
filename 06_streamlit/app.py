@@ -2890,7 +2890,6 @@ def render_vorschlaege_page():
         verhaeltnis = verhaeltnis_aus(ctx)
         spec = spec_fuer(plattform, verhaeltnis)
         mit_bild = bild_erforderlich(ctx.get("content_type", "beides"))
-        st.caption("Vorgaben " + format_label(plattform) + ": " + " · ".join(vorgaben_zusammenfassung(spec)))
         zeige_kontext_hinweise(profile)
         if mit_bild:
             pfad, _ = werbebild.finde_schriftdatei(profile.get("ci_schrift", ""), profile.get("ci_schrift_datei", ""))
@@ -3036,8 +3035,6 @@ def render_vorschlaege_page():
                                          horizontal=True)
                             if karussell:
                                 # Karussell: je Karte eine eigene Headline (aufs Bild) und ein Text zur Karte
-                                st.caption("Je Karte: Headline (steht mittig auf dem Bild, vorzugsweise höchstens "
-                                           "5 Wörter) und ein Text zur Karte (nur hier, nicht auf dem Bild).")
                                 for x, karte in enumerate(slides):
                                     st.markdown(f"**Karte {x + 1}**")
                                     st.text_input("Headline", hart_kuerzen(karte["headline"], spec["ueberschrift_max"]),
@@ -3057,11 +3054,6 @@ def render_vorschlaege_page():
                                               help="Handlungsaufforderung (AIDA: Action, Appell nach Schulz von Thun). "
                                                    "Steht als Knopf unter der Headline. Leer lassen = kein Knopf.")
                                 fb_plaetze["cta"] = st.container()
-                                st.caption("Kurze Headline (vorzugsweise höchstens 5 Wörter) mittig auf dem Bild, "
-                                           "darunter der CTA-Knopf.")
-                            elif not karussell:  # Feed: nur die Headline mittig; CTA steht in der Caption
-                                st.caption("Nur eine kurze Headline (vorzugsweise höchstens 5 Wörter), mittig auf "
-                                           "dem Bild. Die Handlungsaufforderung steht am Ende der Caption.")
 
                     regel = hinweise.hashtag_regel_gilt(plattform)
                     if ohne_caption(plattform):  # Story: keine Caption, keine Hashtags
