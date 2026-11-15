@@ -120,6 +120,14 @@
   .st-key-chat_chips div.stButton button { border-radius:999px !important; font-size:12px !important;
     padding:6px 14px !important; font-weight:600 !important; }
   .st-key-chat_chips div.stButton button[kind="secondary"] { color: var(--ink-soft) !important; }
+  /* Vorschläge immer vollständig lesbar: Text umbrechen statt mit „…“ abschneiden; alle Chips einer Reihe gleich hoch */
+  .st-key-chat_chips div.stButton button { height:100% !important; min-height:40px; border-radius:20px !important; }
+  .st-key-chat_chips div.stButton button * { white-space:normal !important; overflow:visible !important;
+    text-overflow:clip !important; line-height:1.35 !important; }
+  .st-key-chat_chips [data-testid="stColumn"] > div,
+  .st-key-chat_chips [data-testid="stColumn"] [data-testid="stVerticalBlock"],
+  .st-key-chat_chips [data-testid="stColumn"] [data-testid="stElementContainer"],
+  .st-key-chat_chips [data-testid="stColumn"] div.stButton { height:100%; }
 
   /* Profil: Altersgruppen-Auswahl (st.pills) – ausgewählte Gruppen oliv gefüllt */
   button[data-variant="pills"][data-selected="true"] { background:var(--oliv-dunkel) !important;
