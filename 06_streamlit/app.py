@@ -1423,16 +1423,15 @@ def zeige_feedback_feld(staerken: list, verbesserungen: list, fazit: str = ""):
 
 def feedback_unter_feldern(i: int, generiert: dict, eingaben: dict, plaetze: dict, profile: dict, ctx: dict,
                            plattform: str, bild_konzept: str):
-    """Feedback-Knopf unter dem zuletzt geänderten Textfeld; das Feedback steht unter dem Feld, das es betrifft
+    """Feedback-Knopf (immer sichtbar) unter dem zuletzt geänderten Textfeld bzw. unter der Caption; das Feedback steht unter dem Feld, das es betrifft
     (Punkte zu mehreren Feldern unter jedem davon). Felder im Bereich „Text und Logo auf dem Bild“
     öffnen diesen Bereich automatisch."""
     fb_key = f"feedback_{i}"
     reihenfolge = feld_ids(generiert)
     geaendert = [f for f in reihenfolge if feld_wert(eingaben, f) != feld_wert(generiert, f)]
-    if not geaendert:
-        st.session_state.pop(fb_key, None)
-        return None
-    knopf_feld = next((f for f in reversed(geaendert) if f in plaetze), None)
+    # Knopf immer sichtbar: unter dem zuletzt geänderten Feld, sonst unter der Caption (bzw. dem letzten Textfeld)
+    knopf_feld = next((f for f in reversed(geaendert) if f in plaetze), None) or \
+        ("caption" if "caption" in plaetze else next((f for f in reversed(reihenfolge) if f in plaetze), None))
     knopf_platz = plaetze[knopf_feld] if knopf_feld else st.container()
 
     feedback = st.session_state.get(fb_key)
@@ -1459,8 +1458,8 @@ def feedback_unter_feldern(i: int, generiert: dict, eingaben: dict, plaetze: dic
     with knopf_platz:
         if st.button("💬 Feedback zu meinem Text aktualisieren" if feedback else "💬 Feedback zu meinem Text",
                      key=f"feedback_btn_{i}", width="stretch",
-                     help="Du hast den Text selbst geändert – die Content-Engine gibt dir ehrliches, "
-                          "konstruktiv-kritisches Feedback dazu, direkt unter dem jeweiligen Feld."):
+                     help="Die Content-Engine gibt dir ehrliches, konstruktiv-kritisches Feedback zu den "
+                          "Texten – auch zu deinen eigenen Änderungen –, direkt unter dem jeweiligen Feld."):
             with st.spinner("Feedback wird erstellt …"):
                 try:
                     neu = hole_feedback(profile, ctx, {
@@ -3109,8 +3108,7 @@ def render_vorschlaege_page():
                         text_key=f"caption_{i}",
                     )
 
-                    # Konstruktiv-kritisches Feedback NUR zu eigenen Texten der Nutzer:innen und nur auf Wunsch,
-                    # für alle Formate gleich, sobald ein Textelement selbst geändert wurde
+                    # Konstruktiv-kritisches Feedback auf Wunsch (Knopf immer sichtbar), für alle Formate gleich
                     generiert = textelemente_standard(post, plattform, ctx, spec, caption)
                     eingaben = textelemente_aus_eingaben(i, generiert)
                     bild_konzept = ((st.session_state.get(f"ki_prompt_{i}", "") if bild_quelle_feld == "ki"
