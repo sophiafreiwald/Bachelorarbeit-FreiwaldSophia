@@ -1700,8 +1700,8 @@ def zeige_kontext_hinweise(profile: dict):
 # alles andere ist feste Auswahl per Knopf. Die Zielgruppe wird nicht erfragt – sie kommt aus der Registrierung (Profilfeld „Zielgruppe“).
 KI_SCHRITTE = ("thema",)  # nur das Thema formuliert die KI; Wirkung, Ziel und Contenttyp = feste Auswahl
 WIRKUNGSEBENEN = prompts.WIRKUNGSEBENEN  # Bruhn (2014); hierarchisch zu den Zielen nach Meffert et al. (2019)
-WIRKUNG_FRAGE = {"Du": "Was soll dein Beitrag erreichen?",
-                 "Sie": "Was soll Ihr Beitrag erreichen?"}
+WIRKUNG_FRAGE = {"Du": "Welche Wirkung soll dein Beitrag bei deiner Zielgruppe haben?",
+                 "Sie": "Welche Wirkung soll Ihr Beitrag bei Ihrer Zielgruppe haben?"}
 
 
 def _anrede_dialog() -> str:
@@ -1728,8 +1728,8 @@ CONTENTTYP_OPTIONEN = {
     "transaktional": ("Angebot & Aktion", "z. B. ein Rabatt, ein neues Produkt oder ein Termin"),
 }
 CONTENTTYP_TEXT_SIE = {"interaktional": "z. B. hinter die Kulissen, Ihr Team oder eine Frage an Ihre Community"}
-CONTENTTYP_FRAGE = {"Du": "Was für ein Beitrag soll es werden?",
-                    "Sie": "Was für ein Beitrag soll es werden?"}
+CONTENTTYP_FRAGE = {"Du": "Worum geht es in deinem Beitrag inhaltlich?",
+                    "Sie": "Worum geht es in Ihrem Beitrag inhaltlich?"}
 
 # Fallback, falls die KI nicht erreichbar ist – der Dialog bleibt bedienbar
 _FRAGE_FALLBACK = {
@@ -1945,7 +1945,7 @@ def contenttyp_festlegen(typ: str, quelle: str):
     ctx = st.session_state.chat_context
     ctx["inhaltlicher_contenttyp"] = typ
     ctx["contenttyp_quelle"] = quelle
-    chip_antwort(f"Art des Beitrags: {CONTENTTYP_OPTIONEN[typ][0]}.")
+    chip_antwort(f"Inhalt: {CONTENTTYP_OPTIONEN[typ][0]}.")
 
 
 def dialog_freitext(text: str):
@@ -2548,12 +2548,12 @@ def zeige_zusammenfassung(ctx: dict):
               ("Wirkung", (_wirkung_label(WIRKUNGSEBENEN[ctx["wirkungsebene"]]) if ctx.get("wirkungsebene") in WIRKUNGSEBENEN else "–")
                + (f" ({ctx['wirkungsebene']})" if ctx.get("wirkungsebene") else ""), "wirkungsebene"),
               ("Ziel", ctx.get("kommunikationsziel", "–"), None),  # ergibt sich aus der Wirkung
-              ("Art des Beitrags", CONTENTTYP_OPTIONEN.get(ctx.get("inhaltlicher_contenttyp"), ("–",))[0],
+              ("Inhalt", CONTENTTYP_OPTIONEN.get(ctx.get("inhaltlicher_contenttyp"), ("–",))[0],
                "inhaltlicher_contenttyp"),
               # Zielgruppe (Eiring, 2026, Schritt 2) kommt aus der Registrierung; ändern im Profil
               ("Zielgruppe", (zielgruppe or "nicht angegeben") + " (aus deinem Profil)", None),
               ("Format", format_label(ctx.get("plattform_format")) + (f" · {verhaeltnis_aus(ctx)}" if ctx.get("plattform_format") else ""), "plattform_format"),
-              ("Inhalt", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), None)]  # fest: Bild + Caption
+              ("Bestandteile", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), None)]  # fest: Bild + Caption
     if bild_erforderlich(ctx.get("content_type")):
         zeilen.append(("Personen im Bild", personen, "personen_im_bild"))
     for k in ctx.get("klaerungen", []):
