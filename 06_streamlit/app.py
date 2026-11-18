@@ -1,16 +1,3 @@
-"""Content-Engine – Streamlit-Frontend.
-
-Architektur:
-  Login/Registrierung -> Chat-Dialog (Absichtserkennung via OpenAI) ->
-  Vorschläge (3 Varianten, Bildquelle wählen, sofort veröffentlichen
-  ODER für den Kalender einplanen) -> Kalender (Planungsübersicht,
-  manuelles Veröffentlichen zum geplanten Zeitpunkt).
-
-Persistenz: SQLite über db.py (Nutzer, Unternehmensprofil, geplante und veröffentlichte Beiträge).
-Prompt-Architektur: Alle Anweisungen an die KI stehen in prompts.py (Backend).
-KI-Aufrufe (OpenAI) und Website-Abruf laufen direkt aus Python.
-"""
-
 import base64
 import calendar
 import concurrent.futures
@@ -27,7 +14,7 @@ import streamlit as st
 from PIL import Image
 
 try:
-    from dotenv import load_dotenv  # Paket „python-dotenv“ (pip install python-dotenv)
+    from dotenv import load_dotenv  
 except ImportError:
     def load_dotenv(pfad: str = None):
         """Ersatz, falls python-dotenv nicht installiert ist: liest einfache KEY=WERT-Zeilen aus .env.
@@ -51,15 +38,11 @@ import hinweise
 import prompts
 import werbebild
 
-# .env liegt neben app.py – unabhängig davon, aus welchem Ordner Streamlit gestartet wird
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
-# --- Konfiguration -------------------------------------------------------
+# --- Konfiguration Chat-GPT -------------------------------------------------------
 
 OPENAI_API_KEY = os.environ.get("API_CHATGPT")
-# Modelle: fest eingestellt, damit alle Durchläufe – auch die Evaluation –
-# mit denselben Modellen und derselben Bildqualität laufen (keine Änderung über die .env).
-#   Text: gpt-6-luna · Bild: gpt-image-2.5-flare, Qualität „medium“
 OPENAI_MODEL = "gpt-6-luna"
 OPENAI_IMAGE_MODEL = "gpt-image-2.5-flare"
 OPENAI_IMAGE_QUALITY = "medium"
@@ -121,18 +104,7 @@ CONTENT_TYPE_LABELS = {
 }
 PLATTFORMEN = {"instagram": "Instagram", "facebook": "Facebook"}
 BEITRAGSARTEN = {"feed": "Feed", "karussell": "Karussell", "story": "Story"}
-# Plattform-Spezifikationen. Quellen: Meta Ads Guide (Instagram Story/Feed/Karussell, Facebook Story/Bild/Karussell);
-# Meta, Hashtags Best Practices 2026. primaertext = Caption, ueberschrift = Headline auf dem Bild, None = keine Vorgabe.
-#   tabelle          = Anzeige unter „Vorgaben“
-#   verhaeltnis      = Seitenverhältnis: Feed und Karussell 4:5 oder 1:1 (Wahl im Dialog), Storys 9:16
-#   caption_empfehlung = Längenempfehlung je Plattform:
-#     Instagram: 70–125 Zeichen für Reichweite, 150–300 Wörter für informativen Content
-#     Facebook:  ca. 80 Zeichen für Engagement, 100–250 Wörter für Angebote
-#   primaertext_max  = technisches Plattformlimit: Instagram max. 2.200 Zeichen (Hashtags zählen mit, daher
-#                      Text höchstens 2.100); Facebook max. 63.206 Zeichen
-#   hashtags_max     = 5 (Instagram „bis zu 5“, Facebook „3–5“); die App setzt redaktionell genau 5
-#   Storys: keine Caption und keine Hashtags
-# 2.100 = Instagram-Limit 2.200 Zeichen inkl. Hashtags abzüglich Reserve für die Hashtag-Zeile (5 Hashtags)
+
 _CAPTION_IG = {"primaertext_min": None, "primaertext_max": 2100,
                "caption_empfehlung": "kurz 70–125 Zeichen für Reichweite; lang 150–300 Wörter für informativen Content"}
 _CAPTION_FB = {"primaertext_min": None, "primaertext_max": 63206,
@@ -284,7 +256,6 @@ def bild_erforderlich(content_type: str) -> bool:
 NAV_ITEMS = [("chat", "Beitrag erstellen"), ("vorschlaege", "Posting Vorschläge"), ("kalender", "Content-Kalender"), ("profil", "Profil")]
 LOGO_VERZEICHNIS = os.path.join(db.UPLOADS_VERZEICHNIS, "logos")
 
-# --- Design-Tokens & globales CSS: ausgelagert in style.css --------------
 
 STYLESHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "style.css")
 SCHRIFTEN_HTML = (
@@ -482,7 +453,7 @@ def _post_formatieren(raw: str, aspekt: str, nummer: int) -> dict:
 
 
 def erzeuge_beitraege(payload: dict) -> dict:
-    """Beitragserstellung mit EINEM Generierungsaufruf: Der Gesamtprompt
+    """Beitragserstellung mit einem Generierungsaufruf: Der Gesamtprompt
     (prompts.GESAMT_SYSTEM: Rahmenmodell, Werbebotschaft, Bildgestaltung) liefert alle drei Beiträge samt
     Unteraspekt, Texten und Bildidee. Danach folgen Bildmodell und Qualitätssicherung."""
     p = payload["prompts"]

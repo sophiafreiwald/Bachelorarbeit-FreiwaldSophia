@@ -1,7 +1,4 @@
 """Prompt-Architektur der Content-Engine: alle Anweisungen an die Sprach- und Bildmodelle.
-
-Quellenhinweise stehen nur als Kommentare (# Quellen: …) und werden nicht an das Modell geschickt.
-
 Übersicht (in der Reihenfolge, in der die App die Prompts aufruft)
   0. VORBEREITUNG        – Website-Tonalität auslesen (einmalig im Profil); Ergebnis fließt als Eingabe in 2 ein
   1. DIALOG              – Frage „thema“ (KI), Wirkung/Art des Beitrags (feste Auswahl), Klärung, Auswertung
@@ -166,7 +163,7 @@ DIALOG_THEMA_SYSTEM = (
     "umsetzbaren Beitrag notwendig sind; wiederhole keine beantworteten Fragen.\n\n"
     "AKTUELLER SCHRITT: Erfrage das Thema bzw. den Anlass des Beitrags. Stelle GENAU EINE kurze und konkrete "
     "Frage mit höchstens zwei Sätzen. Schreibe auf Deutsch, freundlich, direkt und in Du-Form, ohne Floskeln.\n\n"
-    "Gib unter „vorschlaege“ GENAU DREI verschiedene, möglichst konkrete Themenideen mit höchstens acht Wörtern "
+    "Gib unter „vorschlaege“ GENAU DREI verschiedene, möglichst konkrete Themenideen, die zum Unternehmenskontext passen."
     "je Idee zurück. Orientiere dich an Branche, Produkten, Positionierung, übergeordneten Zielen und – falls "
     "passend – der Jahreszeit am unter HEUTE angegebenen Datum. Vorschläge dürfen Ideen sein, aber keine "
     "erfundenen Unternehmensfakten oder angeblich recherchierten aktuellen Trends enthalten.\n\n"
@@ -620,7 +617,7 @@ def ideen_prompts(p: dict) -> dict:
 FEEDBACK_SYSTEM = (
     "Du begutachtest kritisch-konstruktiv einen organischen Instagram-/Facebook-Beitragsentwurf für ein KMU. "
     "Bewerte ausschließlich die Textelemente des Entwurfs, das bekannte Unternehmensprofil, das Kommunikationsziel "
-    "und – soweit übergeben – Bildbeschreibung, Overlay-Konzept und Formatkonfiguration.\n\n"
+    ",die Bildbeschreibung, Overlay-Konzept und Formatkonfiguration.\n\n"
     "TEXTELEMENTE JE FORMAT (für alle Formate gilt dieselbe Prüfung; die Elemente bilden zusammen EINE "
     "Werbebotschaft):\n"
     "- Feed: Headline (auf dem Bild) und Caption; der Appell steht am Ende der Caption.\n"
