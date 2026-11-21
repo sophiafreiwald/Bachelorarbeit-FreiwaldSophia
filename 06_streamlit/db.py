@@ -107,12 +107,10 @@ def init_db():
                 user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
                 unternehmensname TEXT DEFAULT '',
                 branche TEXT DEFAULT '',
-                standort TEXT DEFAULT '',
                 tone_of_voice TEXT DEFAULT 'Professionell',
                 ci_farbe TEXT DEFAULT '#000000',
                 ci_schrift TEXT DEFAULT '',
                 strategie TEXT DEFAULT '',
-                instagram_account_id TEXT DEFAULT '',
                 logo_path TEXT DEFAULT ''
             );
 
@@ -155,19 +153,16 @@ _NEUE_PROFIL_SPALTEN = {
     "stilbeispiel": "TEXT DEFAULT ''",
     # für den Hinweis „Sind die Angaben noch aktuell?“
     "profil_aktualisiert": "TEXT DEFAULT ''",
-    # Website: URL, Altfeld website_fakten (ungenutzt) und Abrufzeitpunkt
+    # Website: URL und Abrufzeitpunkt
     "website": "TEXT DEFAULT ''",
-    "website_fakten": "TEXT DEFAULT ''",
     "website_abgerufen": "TEXT DEFAULT ''",
     # aus der Website grob ausgelesene Tonalität
     "website_tonalitaet": "TEXT DEFAULT ''",
-    # Veröffentlichung auf Facebook (Seiten-ID); Instagram nutzt instagram_account_id
-    "facebook_page_id": "TEXT DEFAULT ''",
     # Getrennte Profilangaben (statt eines Sammelfelds „Strategie / Positionierung“ bzw. „Fakten“)
     "positionierung": "TEXT DEFAULT ''",   # Abgrenzung zur Konkurrenz; "strategie" = Ziele
     "strasse": "TEXT DEFAULT ''",
     "plz": "TEXT DEFAULT ''",
-    "ort": "TEXT DEFAULT ''",              # ersetzt in der Oberfläche "standort" (wird beim Speichern übernommen)
+    "ort": "TEXT DEFAULT ''",              # ersetzt das frühere Feld „standort“
     "telefon": "TEXT DEFAULT ''",
     "kontakt_email": "TEXT DEFAULT ''",
     "oeffnungszeiten": "TEXT DEFAULT ''",  # JSON: {"Mo": "06:00–18:00", …, "So": "geschlossen"}
@@ -176,7 +171,10 @@ _NEUE_PROFIL_SPALTEN = {
 
 # Spalten, die nicht mehr abgefragt werden: „Produkte & Leistungen“ steckt jetzt in der Positionierung
 # („Was bietet ihr an?“), „Weitere Fakten“ entfällt. Sie werden aus bestehenden .db-Dateien entfernt.
-_ENTFERNTE_PROFIL_SPALTEN = ("produkte", "fakten")
+# Ebenfalls entfernt: „standort“ (doppelt zu „ort“), die Konto-IDs für Instagram/Facebook (keine echte Anbindung
+# im Prototyp) und das ungenutzte Altfeld „website_fakten“.
+_ENTFERNTE_PROFIL_SPALTEN = ("produkte", "fakten", "standort", "instagram_account_id", "facebook_page_id",
+                             "website_fakten")
 
 
 def _produkte_in_positionierung(conn):
@@ -217,6 +215,8 @@ def _migrate_profiles_schema(conn):
         _produkte_in_positionierung(conn)
     if "fakten" in vorhandene_spalten:
         _fakten_in_ci_besonderheiten(conn)
+    if "standort" in vorhandene_spalten:  # Ort aus dem alten Feld übernehmen, falls noch leer
+        conn.execute("UPDATE profiles SET ort = standort WHERE COALESCE(ort, '') = '' AND COALESCE(standort, '') != ''")
     for spalte in _ENTFERNTE_PROFIL_SPALTEN:
         if spalte in vorhandene_spalten:
             conn.execute(f"ALTER TABLE profiles DROP COLUMN {spalte}")
@@ -276,12 +276,12 @@ def get_profile(user_id: int) -> dict:
 
 def save_profile(user_id: int, **fields):
     allowed = {
-        "unternehmensname", "branche", "standort", "tone_of_voice",
+        "unternehmensname", "branche", "tone_of_voice",
         "ci_farbe", "ci_farbe_sekundaer", "ci_schrift", "ci_besonderheiten",
-        "strategie", "instagram_account_id", "logo_path",
+        "strategie", "logo_path",
         "zielgruppe", "anrede", "onboarding_done", "ci_schrift_datei",
         "stilbeispiel", "profil_aktualisiert",
-        "website", "website_fakten", "website_abgerufen", "website_tonalitaet", "facebook_page_id",
+        "website", "website_abgerufen", "website_tonalitaet",
         "positionierung", "strasse", "plz", "ort", "telefon", "kontakt_email", "oeffnungszeiten",
     }
     updates = {k: v for k, v in fields.items() if k in allowed}

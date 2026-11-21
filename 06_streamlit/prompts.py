@@ -36,7 +36,7 @@ def oeffnungszeiten_text(profile: dict) -> str:
 
 
 def anschrift_text(profile: dict) -> str:
-    ort = " ".join(x for x in (profile.get("plz"), profile.get("ort") or profile.get("standort")) if x)
+    ort = " ".join(x for x in (profile.get("plz"), profile.get("ort")) if x)
     return ", ".join(x for x in (profile.get("strasse"), ort) if x)
 
 
