@@ -2263,17 +2263,20 @@ MARKENFLAECHE_HTML = f"""
 <div class="ce-login-brand">
   {LOGO_HTML}
   <div>
-    <p class="ce-login-eyebrow">KI-Content-Engine für kleine und mittlere Unternehmen</p>
-    <h1>Social-Media-Content, der zu deinem Unternehmen passt.</h1>
-    <p class="ce-login-lead">Im Dialog Ideen entwickeln, Bild und Text erstellen lassen und auf Instagram
-      und Facebook veröffentlichen – mit deinem Unternehmensprofil als Grundlage.</p>
+    <p class="ce-login-eyebrow">Unterstützung für KMU</p>
+    <h1>Automatisiert Social-Media-Beiträge erstellen, die zu deinem Unternehmen passen.</h1>
+    <p class="ce-login-lead">Du möchtest regelmäßig auf Instagram und Facebook posten, weißt aber nicht genau,
+      wo du anfangen sollst – oder es fehlt einfach die Zeit? Mit der Content-Engine erstellst du ganz einfach
+      vollständige Beiträge aus Bild und passender Caption, abgestimmt auf dein Unternehmen.</p>
     <div class="ce-login-features">
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Ideen im Dialog</b><small>Die Content-Engine stellt gezielte Fragen an Dich, ohne dass Du ein Social-Media-Profi sein musst.</small></div></div>
+        <div><b>Einmal Profil anlegen</b><small>Angebot, Zielgruppe und weitere Unternehmensdaten eintragen. Danach berücksichtigt die Content-Engine sie in jedem Beitrag – nichts muss wiederholt angegeben werden.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Eigenes Foto oder KI-Bild</b><small>Werbebild mit Headline, Logo und deinen CI-Farben.</small></div></div>
+        <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Prüfen, freigeben, planen</b><small>Hinweise und Faktencheck vor jeder Freigabe, Übersicht im Kalender.</small></div></div>
+        <div><b>Drei fertige Vorschläge</b><small>Bild, Headline, Text und Hashtags – mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
+      <div class="ce-login-feature"><div class="ce-icon"></div>
+        <div><b>Prüfen, freigeben, planen</b><small>Vor jeder Freigabe werden die Angaben gegen dein Profil geprüft. Erst nach deiner aktiven Freigabe wird der Beitrag gepostet oder im Content-Kalender eingeplant.</small></div></div>
     </div>
   </div>
   <div class="ce-login-fuss">© 2026 ContentEngine · Prototyp im Rahmen einer Bachelorarbeit</div>
