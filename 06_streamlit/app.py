@@ -355,12 +355,12 @@ def _slide_urls(eintrag: dict) -> list:
         return []
 
 
-def render_instagram_simulation(unternehmensname: str, caption: str, bild_bytes=None, image_url: str = "",
+def render_social_media_simulation(unternehmensname: str, caption: str, bild_bytes=None, image_url: str = "",
                                 plattform_format: str = "", slides=None, verhaeltnis: str = ""):
-    """Rein clientseitige Simulation der Instagram-Veröffentlichung.
+    """Rein clientseitige Simulation der Veröffentlichung auf Instagram bzw. Facebook (je nach Format).
 
     Es wird bewusst KEIN echter API-Call an die Meta Graph API gemacht –
-    das würde einen verknüpften Instagram-Business-Account je Testnutzer:in
+    das würde je Testnutzer:in einen verknüpften Instagram-Business-Account bzw. eine Facebook-Seite
     voraussetzen, was im Rahmen der Evaluation nicht praktikabel ist.
     """
     with st.container(border=True):
@@ -3173,7 +3173,7 @@ def render_vorschlaege_page():
                                     image_url = speichere_generiertes_bild(fertiges_bild, st.session_state.user_id)
 
                                 if aktion == "Jetzt veröffentlichen":
-                                    # Simulierte Veröffentlichung (siehe render_instagram_simulation):
+                                    # Simulierte Veröffentlichung (siehe render_social_media_simulation):
                                     # kein echter Meta-Graph-API-Call, da das verknüpfte Instagram-/
                                     # Facebook-Konten je Testnutzer:in voraussetzen würde.
                                     # Gespeichert wird trotzdem: Status „veröffentlicht“, Zeitpunkt = jetzt.
@@ -3186,7 +3186,7 @@ def render_vorschlaege_page():
                                         status="veroeffentlicht", plattform_format=plattform, slide_urls=slide_urls,
                                         seitenverhaeltnis=verhaeltnis,
                                     )
-                                    render_instagram_simulation(
+                                    render_social_media_simulation(
                                         profile.get("unternehmensname", ""), edited_caption,
                                         bild_bytes=karten_bilder[0] if karten_bilder else fertiges_bild,
                                         image_url=image_url, plattform_format=plattform, slides=karten_bilder, verhaeltnis=verhaeltnis,
@@ -3386,7 +3386,7 @@ def beitrag_dialog(post_id: int):
             st.caption(f"{datum_lang(p['scheduled_date'])} · {p['scheduled_time']} Uhr")
             st.info("Dieser Beitrag ist bereits (simuliert) veröffentlicht und kann nicht mehr geändert werden.")
     with links:
-        render_instagram_simulation(profile.get("unternehmensname", ""), caption, image_url=p.get("image_url") or "",
+        render_social_media_simulation(profile.get("unternehmensname", ""), caption, image_url=p.get("image_url") or "",
                                     plattform_format=p.get("plattform_format", ""), slides=_slide_urls(p),
                                     verhaeltnis=p.get("seitenverhaeltnis") or "")
 
@@ -3528,7 +3528,7 @@ def render_kalender_page():
                 profile = db.get_profile(st.session_state.user_id)
                 plattform_name = "Facebook" if str(vorschau.get("plattform_format", "")).startswith("fb") else "Instagram"
                 st.success(f"Der Beitrag wurde auf deinem {plattform_name}-Profil veröffentlicht.")
-                render_instagram_simulation(
+                render_social_media_simulation(
                     profile.get("unternehmensname", ""), vorschau["caption"], image_url=vorschau["image_url"],
                     plattform_format=vorschau.get("plattform_format", ""), slides=_slide_urls(vorschau),
                     verhaeltnis=vorschau.get("seitenverhaeltnis") or "",
