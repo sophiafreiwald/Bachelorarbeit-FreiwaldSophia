@@ -141,12 +141,25 @@
   [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] { background:transparent !important;
     border:none !important; padding:0 !important; min-height:0 !important; }
   [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzoneInstructions"] { display:none !important; }
-  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] button { border-radius:9px;
+  /* Knopf „Logo hochladen“ / „Logo ändern“ (nur der Upload-Knopf, nicht die Knöpfe der Dateizeile) */
+  [class*="st-key-logo_feld_"] button[data-testid="stBaseButton-secondary"] { border-radius:9px;
     padding:4px 12px; min-height:0; font-size:0 !important; }
-  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] button > * { display:none !important; }
-  [class*="st-key-logo_feld_"] [data-testid="stFileUploaderDropzone"] button::after { font-size:13px; font-weight:600; }
-  .st-key-logo_feld_aendern [data-testid="stFileUploaderDropzone"] button::after { content:"Logo ändern"; }
-  .st-key-logo_feld_neu [data-testid="stFileUploaderDropzone"] button::after { content:"Logo hochladen"; }
+  [class*="st-key-logo_feld_"] button[data-testid="stBaseButton-secondary"] > * { display:none !important; }
+  [class*="st-key-logo_feld_"] button[data-testid="stBaseButton-secondary"]::after { font-size:13px; font-weight:600; }
+  .st-key-logo_feld_aendern button[data-testid="stBaseButton-secondary"]::after { content:"Logo ändern"; }
+  .st-key-logo_feld_neu button[data-testid="stBaseButton-secondary"]::after { content:"Logo hochladen"; }
+  /* Nach dem Hochladen: statt Dateiname nur ein kleiner Knopf „Entfernen“ – das Logo steht links als Vorschau */
+  [class*="st-key-logo_feld_"] [data-testid="stFileChip"] { background:transparent !important; border:none !important;
+    padding:0 !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileChip"] > div,
+  [class*="st-key-logo_feld_"] [data-testid="stBaseButton-borderlessIcon"] { display:none !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileChipDeleteBtn"] { display:inline-flex; line-height:normal; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileChipDeleteBtn"] button { width:auto !important; height:30px !important;
+    min-height:30px !important; display:inline-flex !important; align-items:center; background:var(--weiss) !important;
+    border:1px solid var(--line) !important; border-radius:9px !important; padding:0 12px !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileChipDeleteBtn"] button svg { display:none !important; }
+  [class*="st-key-logo_feld_"] [data-testid="stFileChipDeleteBtn"] button::after { content:"Entfernen";
+    font-size:13px; font-weight:600; color:var(--ink); }
 
   /* Chat-Bubbles */
   .ce-bubble-row { display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
