@@ -2070,9 +2070,9 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                                                     label_visibility="collapsed")
     w["unternehmensname"] = st.text_input("Unternehmensname *", profile.get("unternehmensname", ""),
                                           placeholder="z. B. Bäckerei Freiwald")
-    w["branche"] = st.text_input("Branche", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
+    w["branche"] = st.text_input("Branche *", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
     w["strategie"] = st.text_area(
-        "Social-Media-Strategie (Ziele)", profile.get("strategie", ""),
+        "Social-Media-Strategie (Ziele) *", profile.get("strategie", ""),
         placeholder="z. B. mehr Laufkundschaft am Vormittag, Stammkunden binden, Auszubildende gewinnen",
         help="Was soll Social Media für das Unternehmen erreichen?",
     )
@@ -2212,6 +2212,10 @@ def profil_fehler(w: dict) -> list:
     fehler = []
     if not w["unternehmensname"].strip():
         fehler.append("Bitte den Unternehmensnamen angeben.")
+    if not w.get("branche", "").strip():
+        fehler.append("Bitte die Branche angeben.")
+    if not w.get("strategie", "").strip():
+        fehler.append("Bitte die Social-Media-Strategie (Ziele) angeben.")
     plz = w.get("plz", "").strip()
     if plz and not (plz.isdigit() and len(plz) == 5):
         fehler.append("Die PLZ muss aus 5 Ziffern bestehen.")
@@ -2280,11 +2284,11 @@ MARKENFLAECHE_HTML = f"""
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Einmal Profil anlegen</b><small>Angebot, Zielgruppe und weitere Unternehmensdaten eintragen. Danach berücksichtigt die Content-Engine sie in jedem Beitrag – nichts muss wiederholt angegeben werden.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor. Du gibst die Beiträge frei und dein Content wird automatisch für dich gepostet oder im Content-Kalender eingeplant.</small></div></div>
+        <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Du entscheidest, was freigegeben wird</b><small>Du gibst das Thema vor und die Content-Engine erstellt drei Vorschläge mit passendem Bild, Headline, Text und Hashtags – abgestimmt auf deine Unternehmensangaben, mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
+        <div><b>Drei fertige Vorschläge</b><small>Zu deinem Thema erstellt die Content-Engine drei Vorschläge mit passendem Bild, Headline, Text und Hashtags – abgestimmt auf deine Unternehmensangaben, mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Prüfen, freigeben, planen</b><small>Vor jeder Freigabe werden die Angaben gegen dein Profil geprüft. Erst nach deiner aktiven Freigabe wird der Beitrag gepostet oder im Content-Kalender eingeplant.</small></div></div>
+        <div><b>Prüfen, freigeben, planen</b><small>Vor jeder Freigabe werden die Angaben gegen dein Profil geprüft. Du entscheidest, was freigegeben wird – erst danach wird dein Beitrag automatisch gepostet oder im Content-Kalender eingeplant.</small></div></div>
     </div>
   </div>
   <div class="ce-login-fuss">© 2026 ContentEngine · Prototyp im Rahmen einer Bachelorarbeit</div>
