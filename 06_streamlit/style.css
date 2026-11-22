@@ -129,6 +129,9 @@
   .st-key-chat_chips [data-testid="stColumn"] [data-testid="stElementContainer"],
   .st-key-chat_chips [data-testid="stColumn"] div.stButton { height:100%; }
 
+  /* Profil, Zielgruppe: Labels der ersten Zeile gleich hoch, Felder beginnen auf derselben Höhe */
+  .st-key-zg_zeile1 [data-testid="stWidgetLabel"] { min-height:3.4em; display:flex; align-items:flex-end; }
+
   /* Profil: Altersgruppen-Auswahl (st.pills) – ausgewählte Gruppen oliv gefüllt */
   button[data-variant="pills"][data-selected="true"] { background:var(--oliv-dunkel) !important;
     border-color:var(--oliv-dunkel) !important; color:var(--weiss) !important; }

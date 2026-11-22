@@ -2079,7 +2079,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     # Positionierung über drei Leitfragen (Was tun wir? Für wen? Wie?); gespeichert als ein Text
     # im bisherigen Feld „positionierung“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
     st.markdown("##### Positionierung")
-    st.caption("Wofür steht ihr – im Unterschied zur Konkurrenz?")
+    st.caption("Wofür steht dein Unternehmen? Beschreib möglichst ausführlich, was euch als Unternehmen auszeichnet.")
     pos = leitfragen_aufteilen(profile.get("positionierung", ""), POSITIONIERUNG_FELDER, "besonderheit")
     # Größere Felder, damit die Angaben ausführlicher werden (ersetzt auch „Produkte & Leistungen“)
     p1, p2, p3 = st.columns(3, vertical_alignment="bottom")
@@ -2088,11 +2088,11 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                                       placeholder="z. B. Brot und Brötchen aus eigener Backstube, "
                                                   "Hochzeitstorten auf Bestellung, Frühstück im Café")
     with p2:
-        pos["fuer_wen"] = st.text_area("Für wen ist euer Angebot?", pos.get("fuer_wen", ""), height=140,
+        pos["fuer_wen"] = st.text_area("Für wen ist euer Angebot? *", pos.get("fuer_wen", ""), height=140,
                                        placeholder="z. B. Genießer:innen und Familien aus der Region, "
                                                    "die Wert auf frische Backwaren legen")
     with p3:
-        pos["besonderheit"] = st.text_area("Was macht euch besonders?", pos.get("besonderheit", ""), height=140,
+        pos["besonderheit"] = st.text_area("Was macht euch besonders? *", pos.get("besonderheit", ""), height=140,
                                            placeholder="z. B. traditionelles Handwerk mit regionalen Zutaten – "
                                                        "im Unterschied zu Backshop-Ketten")
     w["positionierung"] = leitfragen_text(pos, POSITIONIERUNG_FELDER)
@@ -2140,12 +2140,14 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
              "damit die Beiträge ähnlich klingen. Fakten wie Öffnungszeiten oder Anschrift kommen ausschließlich "
              "aus deinem Profil.",
     )
+    st.caption("Aus der Website wird nur die Tonalität ausgelesen – also Anrede, Wortwahl und Satzbau –, damit "
+               "die Beiträge ähnlich klingen wie eure eigenen Texte. Inhalte und Fakten werden nicht übernommen.")
     website_tonalitaet_feld(profile, w["website"])
 
     # Zielgruppe über Leitfragen (Wer? Was? Warum? Wie?); gespeichert als ein Text im bisherigen
     # Feld „zielgruppe“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
     st.markdown("##### Zielgruppe & Ansprache")
-    st.caption("Vier kurze Fragen – ein Stichpunkt pro Feld reicht.")
+    st.caption("Beschreib eure Zielgruppe so genau wie möglich.")
     zg = leitfragen_aufteilen(profile.get("zielgruppe", ""), ZIELGRUPPE_FELDER, "wer")
     alter_vorher = [ALTER_ALT.get(a.strip(), a.strip()) for a in zg.get("alter", "").split(",")]
     alter_vorher = [a for a in alter_vorher if a in ALTERSGRUPPEN]
@@ -2153,10 +2155,12 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                      selection_mode="multi", default=alter_vorher)
     zg["alter"] = ", ".join(alter or [])
     # Mehrzeilige Felder, deren Höhe sich dem Inhalt anpasst (langer Text bleibt vollständig sichtbar)
-    z1, z2 = st.columns(2, vertical_alignment="top")
+    # Erste Zeile: Labels gleich hoch (das linke bricht um), damit beide Felder auf derselben Höhe beginnen
+    with st.container(key="zg_zeile1"):
+        z1, z2 = st.columns(2, vertical_alignment="top")
     with z1:
         zg["wer"] = st.text_area("Wer sind die Personen, die angesprochen werden sollen? *", zg.get("wer", ""),
-                                  placeholder="z. B. Berufstätige und Familien aus der Region", height="content")
+                                  placeholder="z. B. berufstätige Frauen und Männer sowie Familien aus der Region", height="content")
     with z2:
         zg["warum"] = st.text_area("Warum kommen diese Personen zu euch? *", zg.get("warum", ""),
                                     placeholder="z. B. Qualität, persönliche Beratung, Nähe", height="content")
@@ -2217,6 +2221,10 @@ def profil_fehler(w: dict) -> list:
     pos = w.get("_positionierung_teile", {})
     if not pos.get("angebot", "").strip():
         fehler.append("Positionierung: Bitte angeben, was ihr anbietet.")
+    if not pos.get("fuer_wen", "").strip():
+        fehler.append("Positionierung: Bitte angeben, für wen euer Angebot ist.")
+    if not pos.get("besonderheit", "").strip():
+        fehler.append("Positionierung: Bitte angeben, was euch besonders macht.")
     zg = w.get("_zielgruppe_teile", {})
     alter = zg.get("alter_liste", [])
     if not alter:
