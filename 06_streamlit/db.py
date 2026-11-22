@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import os
+import re
 import secrets
 import shutil
 import sqlite3
@@ -218,6 +219,26 @@ _GENERATIONEN = ["Generation Z (1995–2012)", "Millennials (1980–1994)", "Gen
                  "Baby Boomer (1946–1964)", "Keine bestimmte Generation"]
 
 
+def generation_als_alter(generation: str) -> str:
+    """Generation → Alter im aktuellen Jahr, z. B. „Generation Z (1995–2012)“ → „14–31 Jahre“.
+    Gespeichert wird die Generation (bleibt jedes Jahr gültig); angezeigt und an die KI übergeben wird das Alter."""
+    m = re.search(r"\((\d{4})–(\d{4})\)", generation)
+    if not m:
+        return "Keine bestimmte Altersgruppe" if generation.strip() == "Keine bestimmte Generation" else generation
+    jahr = datetime.date.today().year
+    return f"{jahr - int(m.group(2))}–{jahr - int(m.group(1))} Jahre"
+
+
+def zielgruppe_mit_alter(zielgruppe: str) -> str:
+    """Im Zielgruppen-Text die gespeicherten Generationen durch das Alter ersetzen (für Prompts und Anzeige)."""
+    teile = (zielgruppe or "").split("; ")
+    for i, teil in enumerate(teile):
+        if teil.startswith("Altersgruppen:"):
+            werte = [w.strip() for w in teil.split(":", 1)[1].split(",") if w.strip()]
+            teile[i] = "Altersgruppen: " + ", ".join(generation_als_alter(w) for w in werte)
+    return "; ".join(teile)
+
+
 def _altersgruppen_in_generationen(conn):
     """Ersetzt im Zielgruppen-Text („Altersgruppen: 18–29, 30–49; Wer: …“) alte Altersgruppen durch Generationen.
     Bereits umgestellte Angaben bleiben unverändert."""
@@ -304,6 +325,8 @@ def get_profile(user_id: int) -> dict:
         for feld in ("logo_path", "ci_schrift_datei"):  # Pfade vom eigenen Rechner auch online auflösen
             if profil.get(feld):
                 profil[feld] = portabler_pfad(profil[feld])
+        # Zielgruppe: gespeichert als Generation, an Prompts und Oberfläche als Alter („14–31 Jahre“)
+        profil["zielgruppe"] = zielgruppe_mit_alter(profil.get("zielgruppe") or "")
         return profil
 
 
