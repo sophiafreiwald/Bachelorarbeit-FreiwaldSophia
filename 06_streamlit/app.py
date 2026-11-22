@@ -1673,11 +1673,9 @@ WIRKUNG_FRAGE = {"Du": "Welche Wirkung soll dein Beitrag bei deiner Zielgruppe h
 
 
 def _anrede_dialog() -> str:
-    """Ansprache im Dialog = Anrede aus dem Profil (wie die Begrüßung)."""
-    try:
-        return "Du" if db.get_profile(st.session_state.user_id).get("anrede") == "Du" else "Sie"
-    except Exception:
-        return "Du"
+    """Die Content-Engine duzt das Unternehmen immer. Die Anrede im Profil („Ansprache der Zielgruppe“) gilt nur
+    für die Beiträge an die Kundschaft."""
+    return "Du"
 
 
 def _wirkung_text(e: dict) -> str:
@@ -2190,6 +2188,7 @@ def profil_felder(profile: dict) -> dict:
     w["_zielgruppe_teile"] = {**zg, "alter_liste": list(alter or [])}
     w["anrede"] = st.radio(
         "Ansprache der Zielgruppe", ANREDE_OPTIONEN, horizontal=True,
+        help="Gilt für eure Beiträge, also wie ihr eure Kundschaft ansprecht. Die Content-Engine selbst duzt dich.",
         index=ANREDE_OPTIONEN.index(profile.get("anrede", "Sie")) if profile.get("anrede") in ANREDE_OPTIONEN else 0,
     )
     w["tone_of_voice"] = st.selectbox(
@@ -2591,12 +2590,9 @@ def render_chat_page():
 
         profile = db.get_profile(st.session_state.user_id)
         if not st.session_state.chat_history:
-            sie = profile.get("anrede") != "Du"
-            st.session_state.chat_history.append({
+            st.session_state.chat_history.append({  # die Content-Engine duzt das Unternehmen immer
                 "role": "assistant",
-                "content": ("Hallo! Ich führe Sie in wenigen Schritten zum fertigen Beitrag. Was möchten Sie erstellen?"
-                            if sie else
-                            "Hallo! Ich führe dich in wenigen Schritten zum fertigen Beitrag. Was möchtest du erstellen?"),
+                "content": "Hallo! Ich führe dich in wenigen Schritten zum fertigen Beitrag. Was möchtest du erstellen?",
             })
 
         # Nächste Frage der KI VOR dem Verlauf erzeugen, damit sie sofort sichtbar ist
