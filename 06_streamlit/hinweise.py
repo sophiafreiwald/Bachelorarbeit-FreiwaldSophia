@@ -162,7 +162,7 @@ def normalisiere_oeffnungszeit(text: str):
     if t.lower() in ("geschlossen", "zu", "ruhetag", "-", "–"):
         return True, "geschlossen"
     spannen = []
-    for teil in re.split(r"\s*(?:,|;|/|und)\s*", t):
+    for teil in re.split(r"\s*(?:,|;|/|&|und)\s*", t):
         m = _SPANNE.match(teil)
         if not m:
             return False, t

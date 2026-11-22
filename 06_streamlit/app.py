@@ -2050,6 +2050,12 @@ def leitfragen_aufteilen(text: str, felder: list, freitext_feld: str) -> dict:
     return teile
 
 
+# Beispiel-Öffnungszeiten als Platzhalter (Mo–Do mit Mittagspause, Fr nur vormittags, Wochenende geschlossen)
+OEFFNUNGSZEIT_BEISPIEL = {"Mo": "z. B. 7:30–12:00 und 13:00–18:00 Uhr", "Di": "z. B. 7:30–12:00 und 13:00–18:00 Uhr",
+                          "Mi": "z. B. 7:30–12:00 und 13:00–18:00 Uhr", "Do": "z. B. 7:30–12:00 und 13:00–18:00 Uhr",
+                          "Fr": "z. B. 7:00–12:00 Uhr", "Sa": "z. B. geschlossen", "So": "z. B. geschlossen"}
+
+
 def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_feld: bool = True) -> dict:
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
     w = {}
@@ -2070,9 +2076,9 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                                                     label_visibility="collapsed")
     w["unternehmensname"] = st.text_input("Unternehmensname *", profile.get("unternehmensname", ""),
                                           placeholder="z. B. Bäckerei Freiwald")
-    w["branche"] = st.text_input("Branche", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
+    w["branche"] = st.text_input("Branche *", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
     w["strategie"] = st.text_area(
-        "Social-Media-Strategie (Ziele)", profile.get("strategie", ""),
+        "Social-Media-Strategie (Ziele) *", profile.get("strategie", ""),
         placeholder="z. B. mehr Laufkundschaft am Vormittag, Stammkunden binden, Auszubildende gewinnen",
         help="Was soll Social Media für das Unternehmen erreichen?",
     )
@@ -2099,23 +2105,22 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     w["_positionierung_teile"] = pos
 
     st.markdown("##### Anschrift & Kontakt")
-    w["strasse"] = st.text_input("Straße und Hausnummer", profile.get("strasse", ""), placeholder="z. B. Hauptstraße 12")
+    w["strasse"] = st.text_input("Straße und Hausnummer *", profile.get("strasse", ""), placeholder="z. B. Hauptstraße 12")
     a1, a2 = st.columns([1, 3])
     with a1:
-        w["plz"] = st.text_input("PLZ", profile.get("plz", ""), max_chars=5, placeholder="70794")
+        w["plz"] = st.text_input("PLZ *", profile.get("plz", ""), max_chars=5, placeholder="70794")
     with a2:
         # Bestehende Konten: der frühere „Standort“ wird als Ort vorbelegt
-        w["ort"] = st.text_input("Ort", profile.get("ort", ""), placeholder="z. B. Filderstadt")
+        w["ort"] = st.text_input("Ort *", profile.get("ort", ""), placeholder="z. B. Filderstadt")
     k1, k2 = st.columns(2)
     with k1:
-        w["telefon"] = st.text_input("Telefon", profile.get("telefon", ""), placeholder="z. B. 0711 123456")
+        w["telefon"] = st.text_input("Telefon *", profile.get("telefon", ""), placeholder="z. B. 0711 123456")
     with k2:
-        w["kontakt_email"] = st.text_input("E-Mail für Kund:innen", profile.get("kontakt_email", ""),
+        w["kontakt_email"] = st.text_input("E-Mail für Kund:innen *", profile.get("kontakt_email", ""),
                                            placeholder="z. B. info@baeckerei-muster.de")
 
     st.markdown("##### Öffnungszeiten")
-    st.caption("Je Tag z. B. „6–18“, „6:00–12:30, 14:00–18:00“ oder „geschlossen“. Leer = keine Angabe. "
-               "Die Angaben werden vereinheitlicht und im Faktencheck verwendet.")
+    st.caption("Bitte für jeden Tag angeben – an Ruhetagen „geschlossen“.")
     try:
         zeiten = json.loads(profile.get("oeffnungszeiten") or "{}")
     except ValueError:
@@ -2124,8 +2129,9 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     z1, z2 = st.columns(2)
     for n, tag in enumerate(hinweise.WOCHENTAGE):
         with (z1 if n < 4 else z2):
-            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag], zeiten.get(tag, ""),
-                                                      key=f"oeffnung_{tag}")
+            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag] + " *", zeiten.get(tag, ""),
+                                                      key=f"oeffnung_{tag}",
+                                                      placeholder=OEFFNUNGSZEIT_BEISPIEL.get(tag, ""))
 
     st.markdown("##### Unternehmenswissen")
     st.caption("Diese Angaben nutzt die Content-Engine für Texte, Ideen und Bilder. "
@@ -2212,6 +2218,14 @@ def profil_fehler(w: dict) -> list:
     fehler = []
     if not w["unternehmensname"].strip():
         fehler.append("Bitte den Unternehmensnamen angeben.")
+    if not w.get("branche", "").strip():
+        fehler.append("Bitte die Branche angeben.")
+    if not w.get("strategie", "").strip():
+        fehler.append("Bitte die Social-Media-Strategie (Ziele) angeben.")
+    for feld, name in (("strasse", "Straße und Hausnummer"), ("plz", "PLZ"), ("ort", "Ort"), ("telefon", "Telefon"),
+                       ("kontakt_email", "E-Mail für Kund:innen")):
+        if not w.get(feld, "").strip():
+            fehler.append(f"Bitte {name} angeben.")
     plz = w.get("plz", "").strip()
     if plz and not (plz.isdigit() and len(plz) == 5):
         fehler.append("Die PLZ muss aus 5 Ziffern bestehen.")
@@ -2235,13 +2249,15 @@ def profil_fehler(w: dict) -> list:
         fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
     if not zg.get("warum", "").strip():
         fehler.append("Zielgruppe: Bitte angeben, warum diese Personen zu euch kommen.")
+    if any(not (text or "").strip() for text in w.get("oeffnungszeiten", {}).values()):
+        fehler.append("Bitte die Öffnungszeiten für alle Tage angeben (Ruhetag: „geschlossen“).")
     for tag, text in w.get("oeffnungszeiten", {}).items():
         ok, normiert = hinweise.normalisiere_oeffnungszeit(text)
         if ok:
             w["oeffnungszeiten"][tag] = normiert
         else:
             fehler.append(f"Öffnungszeit {hinweise.WOCHENTAGE_LANG[tag]} „{text}“ nicht lesbar – "
-                          "bitte z. B. „6–18“, „6:00–12:30, 14:00–18:00“ oder „geschlossen“.")
+                          "bitte z. B. „7:30–12:00 und 13:00–18:00 Uhr“ oder „geschlossen“.")
     return fehler
 
 
@@ -2274,7 +2290,7 @@ MARKENFLAECHE_HTML = f"""
     <p class="ce-login-eyebrow">Unterstützung für KMU</p>
     <h1>Automatisiert Social-Media-Beiträge erstellen, die zu deinem Unternehmen passen.</h1>
     <p class="ce-login-lead">Du möchtest regelmäßig auf Instagram und Facebook posten, weißt aber nicht genau,
-      wo du anfangen sollst – oder es fehlt einfach die Zeit? Mit der Content-Engine erstellst du ganz einfach
+      wo du anfangen sollst – oder es fehlt einfach die Zeit?<br><br>Mit der Content-Engine erstellst du ganz einfach
       vollständige Beiträge aus Bild und passender Caption, abgestimmt auf dein Unternehmen.</p>
     <div class="ce-login-features">
       <div class="ce-login-feature"><div class="ce-icon"></div>
@@ -2282,9 +2298,9 @@ MARKENFLAECHE_HTML = f"""
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Drei fertige Vorschläge</b><small>Bild, Headline, Text und Hashtags – mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
+        <div><b>Drei fertige Vorschläge</b><small>Zu deinem Thema erstellt die Content-Engine drei Vorschläge mit passendem Bild, Headline, Text und Hashtags – abgestimmt auf deine Unternehmensangaben, mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Prüfen, freigeben, planen</b><small>Vor jeder Freigabe werden die Angaben gegen dein Profil geprüft. Erst nach deiner aktiven Freigabe wird der Beitrag gepostet oder im Content-Kalender eingeplant.</small></div></div>
+        <div><b>Prüfen, freigeben, planen</b><small>Vor jeder Freigabe werden die Angaben gegen dein Profil geprüft. Du entscheidest, was freigegeben wird – erst danach wird dein Beitrag automatisch gepostet oder im Content-Kalender eingeplant.</small></div></div>
     </div>
   </div>
   <div class="ce-login-fuss">© 2026 ContentEngine · Prototyp im Rahmen einer Bachelorarbeit</div>
