@@ -2050,6 +2050,12 @@ def leitfragen_aufteilen(text: str, felder: list, freitext_feld: str) -> dict:
     return teile
 
 
+# Beispiel-Öffnungszeiten als Platzhalter (Mo–Do mit Mittagspause, Fr nur vormittags, Wochenende geschlossen)
+OEFFNUNGSZEIT_BEISPIEL = {"Mo": "z. B. 7:30–12 und 13–18 Uhr", "Di": "z. B. 7:30–12 und 13–18 Uhr",
+                          "Mi": "z. B. 7:30–12 und 13–18 Uhr", "Do": "z. B. 7:30–12 und 13–18 Uhr",
+                          "Fr": "z. B. 7–12 Uhr", "Sa": "z. B. geschlossen", "So": "z. B. geschlossen"}
+
+
 def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_feld: bool = True) -> dict:
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
     w = {}
@@ -2114,7 +2120,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                                            placeholder="z. B. info@baeckerei-muster.de")
 
     st.markdown("##### Öffnungszeiten")
-    st.caption("z. B. 7:30–12 und 13–18 Uhr · leer = geschlossen")
+    st.caption("Bitte für jeden Tag angeben – an Ruhetagen „geschlossen“.")
     try:
         zeiten = json.loads(profile.get("oeffnungszeiten") or "{}")
     except ValueError:
@@ -2123,8 +2129,9 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     z1, z2 = st.columns(2)
     for n, tag in enumerate(hinweise.WOCHENTAGE):
         with (z1 if n < 4 else z2):
-            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag], zeiten.get(tag, ""),
-                                                      key=f"oeffnung_{tag}")
+            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag] + " *", zeiten.get(tag, ""),
+                                                      key=f"oeffnung_{tag}",
+                                                      placeholder=OEFFNUNGSZEIT_BEISPIEL.get(tag, ""))
 
     st.markdown("##### Unternehmenswissen")
     st.caption("Diese Angaben nutzt die Content-Engine für Texte, Ideen und Bilder. "
@@ -2242,9 +2249,10 @@ def profil_fehler(w: dict) -> list:
         fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
     if not zg.get("warum", "").strip():
         fehler.append("Zielgruppe: Bitte angeben, warum diese Personen zu euch kommen.")
+    if any(not (text or "").strip() for text in w.get("oeffnungszeiten", {}).values()):
+        fehler.append("Bitte die Öffnungszeiten für alle Tage angeben (Ruhetag: „geschlossen“).")
     for tag, text in w.get("oeffnungszeiten", {}).items():
-        # leer gelassener Tag = geschlossen
-        ok, normiert = hinweise.normalisiere_oeffnungszeit(text) if (text or "").strip() else (True, "geschlossen")
+        ok, normiert = hinweise.normalisiere_oeffnungszeit(text)
         if ok:
             w["oeffnungszeiten"][tag] = normiert
         else:
