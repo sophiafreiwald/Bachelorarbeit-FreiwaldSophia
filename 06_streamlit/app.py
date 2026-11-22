@@ -96,11 +96,8 @@ st.set_page_config(page_title="ContentEngine", layout="wide", initial_sidebar_st
 TONE_OPTIONEN = ["Professionell", "Locker", "Humorvoll", "Emotional", "Sachlich"]
 ZIEL_OPTIONEN = prompts.ZIEL_OPTIONEN  # Meffert et al. (2019)
 ANREDE_OPTIONEN = ["Sie", "Du"]
-CONTENT_TYPE_LABELS = {
-    "idee": "Nur Content-Ideen",
-    "bild": "Nur Bild",  # Story (ohne Caption)
-    "beides": "Bild + Caption",
-}
+# content_type (intern, wird automatisch gesetzt): „idee“ = nur Content-Ideen, „beides“ = Feed/Karussell mit
+# Bild und Caption, „bild“ = Story (ohne Caption). Steuert, ob Bilder erzeugt werden; wird nicht angezeigt.
 PLATTFORMEN = {"instagram": "Instagram", "facebook": "Facebook"}
 BEITRAGSARTEN = {"feed": "Feed", "karussell": "Karussell", "story": "Story"}
 
@@ -2548,8 +2545,7 @@ def zeige_zusammenfassung(ctx: dict):
                "inhaltlicher_contenttyp"),
               # Zielgruppe (Eiring, 2026, Schritt 2) kommt aus der Registrierung; ändern im Profil
               ("Zielgruppe", (zielgruppe or "nicht angegeben") + " (aus deinem Profil)", None),
-              ("Format", format_label(ctx.get("plattform_format")) + (f" · {verhaeltnis_aus(ctx)}" if ctx.get("plattform_format") else ""), "plattform_format"),
-              ("Bestandteile", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), None)]  # Bild + Caption, bei der Story nur Bild
+              ("Format", format_label(ctx.get("plattform_format")) + (f" · {verhaeltnis_aus(ctx)}" if ctx.get("plattform_format") else ""), "plattform_format")]
     if bild_erforderlich(ctx.get("content_type")):
         zeilen.append(("Personen im Bild", personen, "personen_im_bild"))
     for k in ctx.get("klaerungen", []):
