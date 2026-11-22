@@ -2074,7 +2074,9 @@ def logo_feld(profile: dict, key: str):
             else:
                 st.caption("Noch kein Logo")
         with l2:
-            return st.file_uploader("Logo", type=["png", "jpg", "jpeg"], key=key, label_visibility="collapsed")
+            datei = st.file_uploader("Logo", type=["png", "jpg", "jpeg"], key=key, label_visibility="collapsed")
+            st.caption("Nur JPG oder PNG")
+            return datei
 
 
 def profil_felder(profile: dict) -> dict:
