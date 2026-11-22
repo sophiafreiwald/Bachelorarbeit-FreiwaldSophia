@@ -2114,7 +2114,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                                            placeholder="z. B. info@baeckerei-muster.de")
 
     st.markdown("##### Öffnungszeiten")
-    st.caption("z. B. 7:30–12 und 13–18 Uhr oder geschlossen")
+    st.caption("z. B. 7:30–12 und 13–18 Uhr · leer = geschlossen")
     try:
         zeiten = json.loads(profile.get("oeffnungszeiten") or "{}")
     except ValueError:
@@ -2123,7 +2123,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     z1, z2 = st.columns(2)
     for n, tag in enumerate(hinweise.WOCHENTAGE):
         with (z1 if n < 4 else z2):
-            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag] + " *", zeiten.get(tag, ""),
+            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag], zeiten.get(tag, ""),
                                                       key=f"oeffnung_{tag}")
 
     st.markdown("##### Unternehmenswissen")
@@ -2242,10 +2242,9 @@ def profil_fehler(w: dict) -> list:
         fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
     if not zg.get("warum", "").strip():
         fehler.append("Zielgruppe: Bitte angeben, warum diese Personen zu euch kommen.")
-    if any(not (text or "").strip() for text in w.get("oeffnungszeiten", {}).values()):
-        fehler.append("Bitte die Öffnungszeiten für alle Tage angeben (Ruhetag: „geschlossen“).")
     for tag, text in w.get("oeffnungszeiten", {}).items():
-        ok, normiert = hinweise.normalisiere_oeffnungszeit(text)
+        # leer gelassener Tag = geschlossen
+        ok, normiert = hinweise.normalisiere_oeffnungszeit(text) if (text or "").strip() else (True, "geschlossen")
         if ok:
             w["oeffnungszeiten"][tag] = normiert
         else:
