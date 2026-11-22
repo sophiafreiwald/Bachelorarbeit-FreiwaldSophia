@@ -2025,16 +2025,10 @@ def pruefe_und_generiere(erzwingen: bool = False):
 POSITIONIERUNG_FELDER = [("angebot", "Angebot"), ("fuer_wen", "Für wen"), ("besonderheit", "Besonderheit")]
 ZIELGRUPPE_FELDER = [("alter", "Altersgruppen"), ("wer", "Wer"), ("warum", "Warum"),
                      ("nutzung", "Nutzung"), ("zeitpunkt", "Zeitpunkt")]
-# Zielgruppe nach Generationen (wie in der Arbeit): Generation Z, Millennials, Generation X, Baby Boomer
-ALTER_KEINE = "Keine bestimmte Generation"
-ALTERSGRUPPEN = ["Generation Z (1995–2012)", "Millennials (1980–1994)", "Generation X (1965–1979)",
-                 "Baby Boomer (1946–1964)", ALTER_KEINE]
-# Frühere Altersgruppen in bereits gespeicherten Profilen → passende Generation(en); die Datenbank stellt
-# beim Start ohnehin um (db._altersgruppen_in_generationen)
-ALTER_ALT = db.ALTER_ZU_GENERATION
-
-
-generation_als_alter = db.generation_als_alter  # Anzeige: nur das Alter, z. B. „14–31 Jahre“
+# Altersgruppen aus den Generationen der Arbeit abgeleitet (siehe db.ALTERSGRUPPEN)
+ALTER_KEINE = "Keine bestimmte Altersgruppe"
+ALTERSGRUPPEN = db.ALTERSGRUPPEN
+ALTER_ALT = db.ALTER_ALT  # frühere Angaben in bereits gespeicherten Profilen
 
 
 def leitfragen_text(teile: dict, felder: list) -> str:
@@ -2162,13 +2156,9 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     st.markdown("##### Zielgruppe & Ansprache")
     st.caption("Beschreib eure Zielgruppe so genau wie möglich.")
     zg = leitfragen_aufteilen(profile.get("zielgruppe", ""), ZIELGRUPPE_FELDER, "wer")
-    # Das Profil liefert das Alter („14–31 Jahre“); für die Auswahl zurück auf die Generation abbilden
-    alter_zu_generation = {generation_als_alter(g): g for g in ALTERSGRUPPEN}
-    alter_vorher = [g for a in zg.get("alter", "").split(",")
-                    for g in ALTER_ALT.get(a.strip(), [alter_zu_generation.get(a.strip(), a.strip())])]
+    alter_vorher = [g for a in zg.get("alter", "").split(",") for g in ALTER_ALT.get(a.strip(), [a.strip()])]
     alter_vorher = [a for a in ALTERSGRUPPEN if a in alter_vorher]  # ohne Doppelte, feste Reihenfolge
     alter = st.pills("Welche Altersgruppen sollen angesprochen werden? * (mehrere möglich)", ALTERSGRUPPEN,
-                     format_func=generation_als_alter,
                      selection_mode="multi", default=alter_vorher)
     zg["alter"] = ", ".join(alter or [])
     # Mehrzeilige Felder, deren Höhe sich dem Inhalt anpasst (langer Text bleibt vollständig sichtbar)
@@ -2255,7 +2245,7 @@ def profil_fehler(w: dict) -> list:
     if not alter:
         fehler.append("Zielgruppe: Bitte mindestens eine Altersgruppe auswählen.")
     elif ALTER_KEINE in alter and len(alter) > 1:
-        fehler.append("Zielgruppe: Bitte entweder bestimmte Altersgruppen oder „Keine bestimmte Altersgruppe“ auswählen.")
+        fehler.append(f"Zielgruppe: Bitte entweder bestimmte Altersgruppen oder „{ALTER_KEINE}“ auswählen.")
     if not zg.get("wer", "").strip():
         fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
     if not zg.get("warum", "").strip():

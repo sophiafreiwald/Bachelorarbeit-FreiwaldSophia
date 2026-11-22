@@ -207,41 +207,23 @@ def _fakten_in_ci_besonderheiten(conn):
         conn.execute("UPDATE profiles SET ci_besonderheiten = ? WHERE user_id = ?", (neu, row["user_id"]))
 
 
-# Zielgruppe: frühere Altersgruppen → Generationen (wie in der Arbeit), Stand 2026
-ALTER_ZU_GENERATION = {
-    "13–17-Jährige": ["Generation Z (1995–2012)"], "13–17": ["Generation Z (1995–2012)"],
-    "18–29": ["Generation Z (1995–2012)"],
-    "30–49": ["Millennials (1980–1994)", "Generation X (1965–1979)"],
-    "50–64": ["Generation X (1965–1979)"], "65+": ["Baby Boomer (1946–1964)"],
-    "Keine bestimmte Altersgruppe": ["Keine bestimmte Generation"],
+# Zielgruppe: Altersgruppen, abgeleitet aus den Generationen der Arbeit (Alter im Jahr 2026):
+# Generation Z (1995–2012) = 14–31, Millennials (1980–1994) = 32–46, Generation X (1965–1979) = 47–61,
+# Baby Boomer (1946–1964) = 62–80. Gespeichert, angezeigt und an die KI übergeben wird überall dieselbe Angabe.
+ALTERSGRUPPEN = ["14–31 Jahre", "32–46 Jahre", "47–61 Jahre", "62–80 Jahre", "Keine bestimmte Altersgruppe"]
+# Frühere Angaben (alte Altersgruppen bzw. Generationen) → neue Altersgruppe(n)
+ALTER_ALT = {
+    "13–17-Jährige": ["14–31 Jahre"], "13–17": ["14–31 Jahre"], "18–29": ["14–31 Jahre"],
+    "30–49": ["32–46 Jahre", "47–61 Jahre"], "50–64": ["47–61 Jahre"], "65+": ["62–80 Jahre"],
+    "Generation Z (1995–2012)": ["14–31 Jahre"], "Millennials (1980–1994)": ["32–46 Jahre"],
+    "Generation X (1965–1979)": ["47–61 Jahre"], "Baby Boomer (1946–1964)": ["62–80 Jahre"],
+    "Keine bestimmte Generation": ["Keine bestimmte Altersgruppe"],
 }
-_GENERATIONEN = ["Generation Z (1995–2012)", "Millennials (1980–1994)", "Generation X (1965–1979)",
-                 "Baby Boomer (1946–1964)", "Keine bestimmte Generation"]
 
 
-def generation_als_alter(generation: str) -> str:
-    """Generation → Alter im aktuellen Jahr, z. B. „Generation Z (1995–2012)“ → „14–31 Jahre“.
-    Gespeichert wird die Generation (bleibt jedes Jahr gültig); angezeigt und an die KI übergeben wird das Alter."""
-    m = re.search(r"\((\d{4})–(\d{4})\)", generation)
-    if not m:
-        return "Keine bestimmte Altersgruppe" if generation.strip() == "Keine bestimmte Generation" else generation
-    jahr = datetime.date.today().year
-    return f"{jahr - int(m.group(2))}–{jahr - int(m.group(1))} Jahre"
-
-
-def zielgruppe_mit_alter(zielgruppe: str) -> str:
-    """Im Zielgruppen-Text die gespeicherten Generationen durch das Alter ersetzen (für Prompts und Anzeige)."""
-    teile = (zielgruppe or "").split("; ")
-    for i, teil in enumerate(teile):
-        if teil.startswith("Altersgruppen:"):
-            werte = [w.strip() for w in teil.split(":", 1)[1].split(",") if w.strip()]
-            teile[i] = "Altersgruppen: " + ", ".join(generation_als_alter(w) for w in werte)
-    return "; ".join(teile)
-
-
-def _altersgruppen_in_generationen(conn):
-    """Ersetzt im Zielgruppen-Text („Altersgruppen: 18–29, 30–49; Wer: …“) alte Altersgruppen durch Generationen.
-    Bereits umgestellte Angaben bleiben unverändert."""
+def _altersgruppen_vereinheitlichen(conn):
+    """Ersetzt im Zielgruppen-Text („Altersgruppen: …; Wer: …“) frühere Angaben durch die aktuellen
+    Altersgruppen. Bereits umgestellte Angaben bleiben unverändert."""
     for row in conn.execute("SELECT user_id, zielgruppe FROM profiles WHERE zielgruppe LIKE 'Altersgruppen:%'"
                             " OR zielgruppe LIKE '%; Altersgruppen:%'").fetchall():
         teile = (row["zielgruppe"] or "").split("; ")
@@ -250,10 +232,10 @@ def _altersgruppen_in_generationen(conn):
             if not teil.startswith("Altersgruppen:"):
                 continue
             werte = [w.strip() for w in teil.split(":", 1)[1].split(",") if w.strip()]
-            neu = [g for w in werte for g in ALTER_ZU_GENERATION.get(w, [w])]
-            neu = [g for g in _GENERATIONEN if g in neu] + [w for w in neu if w not in _GENERATIONEN]
+            neu = [g for w in werte for g in ALTER_ALT.get(w, [w])]
+            neu = [g for g in ALTERSGRUPPEN if g in neu] + [w for w in dict.fromkeys(neu) if w not in ALTERSGRUPPEN]
             if neu != werte:
-                teile[i] = "Altersgruppen: " + ", ".join(dict.fromkeys(neu))
+                teile[i] = "Altersgruppen: " + ", ".join(neu)
                 geaendert = True
         if geaendert:
             conn.execute("UPDATE profiles SET zielgruppe = ? WHERE user_id = ?", ("; ".join(teile), row["user_id"]))
@@ -270,7 +252,7 @@ def _migrate_profiles_schema(conn):
         _fakten_in_ci_besonderheiten(conn)
     if "standort" in vorhandene_spalten:  # Ort aus dem alten Feld übernehmen, falls noch leer
         conn.execute("UPDATE profiles SET ort = standort WHERE COALESCE(ort, '') = '' AND COALESCE(standort, '') != ''")
-    _altersgruppen_in_generationen(conn)
+    _altersgruppen_vereinheitlichen(conn)
     for spalte in _ENTFERNTE_PROFIL_SPALTEN:
         if spalte in vorhandene_spalten:
             conn.execute(f"ALTER TABLE profiles DROP COLUMN {spalte}")
@@ -325,8 +307,6 @@ def get_profile(user_id: int) -> dict:
         for feld in ("logo_path", "ci_schrift_datei"):  # Pfade vom eigenen Rechner auch online auflösen
             if profil.get(feld):
                 profil[feld] = portabler_pfad(profil[feld])
-        # Zielgruppe: gespeichert als Generation, an Prompts und Oberfläche als Alter („14–31 Jahre“)
-        profil["zielgruppe"] = zielgruppe_mit_alter(profil.get("zielgruppe") or "")
         return profil
 
 
