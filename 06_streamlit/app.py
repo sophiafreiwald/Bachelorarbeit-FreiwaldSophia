@@ -2647,14 +2647,14 @@ def render_chat_page():
             with st.container(key="chat_chips"):
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("Beitrag erstellen", key="chip_modus_beitrag", width="stretch"):
+                    if st.button("Kompletten Social-Media-Beitrag erstellen", key="chip_modus_beitrag", width="stretch"):
                         ctx["modus"] = "beitrag"
-                        chip_antwort("Ich möchte einen Beitrag erstellen.")
+                        chip_antwort("Ich möchte einen kompletten Social-Media-Beitrag erstellen.")
                         st.rerun()
                 with c2:
-                    if st.button(CONTENT_TYPE_LABELS["idee"], key="chip_ct_idee", width="stretch"):
+                    if st.button("Nur Content-Ideen erstellen", key="chip_ct_idee", width="stretch"):
                         ctx["content_type"] = "idee"
-                        chip_antwort(f"Ich möchte: {CONTENT_TYPE_LABELS['idee']}.")
+                        chip_antwort("Ich möchte nur Content-Ideen erstellen.")
                         st.rerun()
 
         elif schritt == "plattform_format":
