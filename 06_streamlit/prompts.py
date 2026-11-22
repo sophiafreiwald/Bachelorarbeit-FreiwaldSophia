@@ -137,11 +137,14 @@ def _dialog_kontext(profile: dict, ctx: dict, schritt: str = "") -> str:
     """User-Kontext der Dialog-Prompts, ggf. mit AKTUELLER_SCHRITT."""
     daten = {
         "HEUTE": _heute(),
+        # Ansprache der Nutzenden im Dialog = Anrede aus dem Profil
+        "ANSPRACHE": "Du-Form" if profile.get("anrede") == "Du" else "Sie-Form",
         "UNTERNEHMEN": {
             "Name": profile.get("unternehmensname", ""), "Branche": profile.get("branche", ""),
             "Social-Media-Strategie (Ziele)": profile.get("strategie", ""),
             "Positionierung": profile.get("positionierung", ""),
             "Zielgruppe allgemein": profile.get("zielgruppe", ""),
+            "Tone of Voice": profile.get("tone_of_voice", ""),
             **profil_fakten(profile),
         },
         "BISHERIGE_ANGABEN": {k: ctx.get(k) for k in ("content_type", "plattform_format", "thema", "angebot",
@@ -162,7 +165,7 @@ DIALOG_THEMA_SYSTEM = (
     "Unterhaltung und bereits getroffene Formatentscheidungen. Stelle nur die Rückfragen, die für einen "
     "umsetzbaren Beitrag notwendig sind; wiederhole keine beantworteten Fragen.\n\n"
     "AKTUELLER SCHRITT: Erfrage das Thema bzw. den Anlass des Beitrags. Stelle GENAU EINE kurze und konkrete "
-    "Frage mit höchstens zwei Sätzen. Schreibe auf Deutsch, freundlich, direkt und in Du-Form, ohne Floskeln.\n\n"
+    "Frage mit höchstens zwei Sätzen. Schreibe auf Deutsch, freundlich, direkt und in der unter ANSPRACHE angegebenen Form, ohne Floskeln.\n\n"
     "Gib unter „vorschlaege“ GENAU DREI verschiedene, möglichst konkrete Themenideen, die zum Unternehmenskontext passen."
     "je Idee zurück. Orientiere dich an Branche, Produkten, Positionierung, übergeordneten Zielen und – falls "
     "passend – der Jahreszeit am unter HEUTE angegebenen Datum. Vorschläge dürfen Ideen sein, aber keine "
@@ -199,7 +202,7 @@ KLAERUNG_SYSTEM = (
     "stehen, und nicht nach Ziel, Art des Beitrags, Plattform, Format, Inhaltsart oder Personen im Bild – diese "
     "sind entschieden. Erfinde keinen Klärungsbedarf: Ist alles Wesentliche klar, setze „klar“ auf true.\n\n"
     "Ist etwas unklar, setze „klar“ auf false und stelle GENAU EINE kurze, konkrete Frage (höchstens zwei Sätze, "
-    "Deutsch, Du-Form). Gib unter „vorschlaege“ bis zu drei kurze mögliche Antworten, sofern sinnvoll; erfinde "
+    "Deutsch, in der unter ANSPRACHE angegebenen Form). Gib unter „vorschlaege“ bis zu drei kurze mögliche Antworten, sofern sinnvoll; erfinde "
     "dabei keine Unternehmensfakten.\n\n"
     "Antworte ausschließlich als valides JSON mit exakt diesen Schlüsseln:\n"
     '{"klar":true,"frage":"","vorschlaege":[]}'
@@ -273,7 +276,7 @@ DIALOG_AUSWERTUNG_SYSTEM = (
     "eindeutig. Kennzeichne in „rueckmeldung“ knapp, dass der Zeitraum interpretiert wurde; erfinde keine Uhrzeit "
     "und keine Aktionsbedingungen. Bei Mehrdeutigkeit frage zur Klärung nach, ohne den Zeitpunkt als gesicherten "
     "Fakt auszugeben.\n\n"
-    "„rueckmeldung“ ist ein bis zwei kurze, freundliche Sätze in Du-Form: bestätige die tatsächlich übernommenen "
+    "„rueckmeldung“ ist ein bis zwei kurze, freundliche Sätze in der unter ANSPRACHE angegebenen Form: bestätige die tatsächlich übernommenen "
     "Informationen; falls etwas für den AKTUELLEN SCHRITT unklar ist, formuliere eine einzige präzise Rückfrage. "
     "Weisen Angaben einen sachlichen Konflikt zur bekannten Positionierung oder einen bereits verstrichenen "
     "Zeitraum auf, weise konstruktiv darauf hin. Frage nicht nach anderen Schritten – das übernimmt die App. "
