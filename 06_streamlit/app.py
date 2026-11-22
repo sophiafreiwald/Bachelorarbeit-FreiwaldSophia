@@ -2274,7 +2274,7 @@ MARKENFLAECHE_HTML = f"""
     <p class="ce-login-eyebrow">Unterstützung für KMU</p>
     <h1>Automatisiert Social-Media-Beiträge erstellen, die zu deinem Unternehmen passen.</h1>
     <p class="ce-login-lead">Du möchtest regelmäßig auf Instagram und Facebook posten, weißt aber nicht genau,
-      wo du anfangen sollst – oder es fehlt einfach die Zeit? Mit der Content-Engine erstellst du ganz einfach
+      wo du anfangen sollst – oder es fehlt einfach die Zeit?<br><br>Mit der Content-Engine erstellst du ganz einfach
       vollständige Beiträge aus Bild und passender Caption, abgestimmt auf dein Unternehmen.</p>
     <div class="ce-login-features">
       <div class="ce-login-feature"><div class="ce-icon"></div>
