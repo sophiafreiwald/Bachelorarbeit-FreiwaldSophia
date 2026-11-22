@@ -97,7 +97,7 @@ TONE_OPTIONEN = ["Professionell", "Locker", "Humorvoll", "Emotional", "Sachlich"
 ZIEL_OPTIONEN = prompts.ZIEL_OPTIONEN  # Meffert et al. (2019)
 ANREDE_OPTIONEN = ["Sie", "Du"]
 CONTENT_TYPE_LABELS = {
-    "idee": "Nur Idee",
+    "idee": "Nur Content-Ideen",
     "bild": "Nur Bild",  # Story (ohne Caption)
     "beides": "Bild + Caption",
 }
@@ -2549,7 +2549,7 @@ def zeige_zusammenfassung(ctx: dict):
               # Zielgruppe (Eiring, 2026, Schritt 2) kommt aus der Registrierung; ändern im Profil
               ("Zielgruppe", (zielgruppe or "nicht angegeben") + " (aus deinem Profil)", None),
               ("Format", format_label(ctx.get("plattform_format")) + (f" · {verhaeltnis_aus(ctx)}" if ctx.get("plattform_format") else ""), "plattform_format"),
-              ("Bestandteile", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), None)]  # fest: Bild + Caption
+              ("Bestandteile", CONTENT_TYPE_LABELS.get(ctx.get("content_type"), "–"), None)]  # Bild + Caption, bei der Story nur Bild
     if bild_erforderlich(ctx.get("content_type")):
         zeilen.append(("Personen im Bild", personen, "personen_im_bild"))
     for k in ctx.get("klaerungen", []):
