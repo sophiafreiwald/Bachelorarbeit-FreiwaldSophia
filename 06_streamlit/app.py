@@ -2099,23 +2099,22 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     w["_positionierung_teile"] = pos
 
     st.markdown("##### Anschrift & Kontakt")
-    w["strasse"] = st.text_input("Straße und Hausnummer", profile.get("strasse", ""), placeholder="z. B. Hauptstraße 12")
+    w["strasse"] = st.text_input("Straße und Hausnummer *", profile.get("strasse", ""), placeholder="z. B. Hauptstraße 12")
     a1, a2 = st.columns([1, 3])
     with a1:
-        w["plz"] = st.text_input("PLZ", profile.get("plz", ""), max_chars=5, placeholder="70794")
+        w["plz"] = st.text_input("PLZ *", profile.get("plz", ""), max_chars=5, placeholder="70794")
     with a2:
         # Bestehende Konten: der frühere „Standort“ wird als Ort vorbelegt
-        w["ort"] = st.text_input("Ort", profile.get("ort", ""), placeholder="z. B. Filderstadt")
+        w["ort"] = st.text_input("Ort *", profile.get("ort", ""), placeholder="z. B. Filderstadt")
     k1, k2 = st.columns(2)
     with k1:
-        w["telefon"] = st.text_input("Telefon", profile.get("telefon", ""), placeholder="z. B. 0711 123456")
+        w["telefon"] = st.text_input("Telefon *", profile.get("telefon", ""), placeholder="z. B. 0711 123456")
     with k2:
-        w["kontakt_email"] = st.text_input("E-Mail für Kund:innen", profile.get("kontakt_email", ""),
+        w["kontakt_email"] = st.text_input("E-Mail für Kund:innen *", profile.get("kontakt_email", ""),
                                            placeholder="z. B. info@baeckerei-muster.de")
 
     st.markdown("##### Öffnungszeiten")
-    st.caption("Je Tag z. B. „6–18“, „6:00–12:30, 14:00–18:00“ oder „geschlossen“. Leer = keine Angabe. "
-               "Die Angaben werden vereinheitlicht und im Faktencheck verwendet.")
+    st.caption("z. B. 7:30–12 und 13–18 Uhr oder geschlossen")
     try:
         zeiten = json.loads(profile.get("oeffnungszeiten") or "{}")
     except ValueError:
@@ -2124,7 +2123,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     z1, z2 = st.columns(2)
     for n, tag in enumerate(hinweise.WOCHENTAGE):
         with (z1 if n < 4 else z2):
-            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag], zeiten.get(tag, ""),
+            w["oeffnungszeiten"][tag] = st.text_input(hinweise.WOCHENTAGE_LANG[tag] + " *", zeiten.get(tag, ""),
                                                       key=f"oeffnung_{tag}")
 
     st.markdown("##### Unternehmenswissen")
@@ -2216,6 +2215,10 @@ def profil_fehler(w: dict) -> list:
         fehler.append("Bitte die Branche angeben.")
     if not w.get("strategie", "").strip():
         fehler.append("Bitte die Social-Media-Strategie (Ziele) angeben.")
+    for feld, name in (("strasse", "Straße und Hausnummer"), ("plz", "PLZ"), ("ort", "Ort"), ("telefon", "Telefon"),
+                       ("kontakt_email", "E-Mail für Kund:innen")):
+        if not w.get(feld, "").strip():
+            fehler.append(f"Bitte {name} angeben.")
     plz = w.get("plz", "").strip()
     if plz and not (plz.isdigit() and len(plz) == 5):
         fehler.append("Die PLZ muss aus 5 Ziffern bestehen.")
@@ -2239,13 +2242,15 @@ def profil_fehler(w: dict) -> list:
         fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
     if not zg.get("warum", "").strip():
         fehler.append("Zielgruppe: Bitte angeben, warum diese Personen zu euch kommen.")
+    if any(not (text or "").strip() for text in w.get("oeffnungszeiten", {}).values()):
+        fehler.append("Bitte die Öffnungszeiten für alle Tage angeben (Ruhetag: „geschlossen“).")
     for tag, text in w.get("oeffnungszeiten", {}).items():
         ok, normiert = hinweise.normalisiere_oeffnungszeit(text)
         if ok:
             w["oeffnungszeiten"][tag] = normiert
         else:
             fehler.append(f"Öffnungszeit {hinweise.WOCHENTAGE_LANG[tag]} „{text}“ nicht lesbar – "
-                          "bitte z. B. „6–18“, „6:00–12:30, 14:00–18:00“ oder „geschlossen“.")
+                          "bitte z. B. „7:30–12 und 13–18 Uhr“ oder „geschlossen“.")
     return fehler
 
 
