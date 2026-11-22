@@ -2051,9 +2051,9 @@ def leitfragen_aufteilen(text: str, felder: list, freitext_feld: str) -> dict:
 
 
 # Beispiel-Öffnungszeiten als Platzhalter (Mo–Do mit Mittagspause, Fr nur vormittags, Wochenende geschlossen)
-OEFFNUNGSZEIT_BEISPIEL = {"Mo": "z. B. 7:30–12 und 13–18 Uhr", "Di": "z. B. 7:30–12 und 13–18 Uhr",
-                          "Mi": "z. B. 7:30–12 und 13–18 Uhr", "Do": "z. B. 7:30–12 und 13–18 Uhr",
-                          "Fr": "z. B. 7–12 Uhr", "Sa": "z. B. geschlossen", "So": "z. B. geschlossen"}
+OEFFNUNGSZEIT_BEISPIEL = {"Mo": "z. B. 7:30–12:00 und 13:00–18:00 Uhr", "Di": "z. B. 7:30–12:00 und 13:00–18:00 Uhr",
+                          "Mi": "z. B. 7:30–12:00 und 13:00–18:00 Uhr", "Do": "z. B. 7:30–12:00 und 13:00–18:00 Uhr",
+                          "Fr": "z. B. 7:00–12:00 Uhr", "Sa": "z. B. geschlossen", "So": "z. B. geschlossen"}
 
 
 def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_feld: bool = True) -> dict:
@@ -2257,7 +2257,7 @@ def profil_fehler(w: dict) -> list:
             w["oeffnungszeiten"][tag] = normiert
         else:
             fehler.append(f"Öffnungszeit {hinweise.WOCHENTAGE_LANG[tag]} „{text}“ nicht lesbar – "
-                          "bitte z. B. „7:30–12 und 13–18 Uhr“ oder „geschlossen“.")
+                          "bitte z. B. „7:30–12:00 und 13:00–18:00 Uhr“ oder „geschlossen“.")
     return fehler
 
 
