@@ -2147,7 +2147,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     # Zielgruppe über Leitfragen (Wer? Was? Warum? Wie?); gespeichert als ein Text im bisherigen
     # Feld „zielgruppe“, Teile mit „;“ getrennt – die Prompts bleiben unverändert.
     st.markdown("##### Zielgruppe & Ansprache")
-    st.caption("Vier kurze Fragen – ein Stichpunkt pro Feld reicht.")
+    st.caption("Beschreib eure Zielgruppe so genau wie möglich.")
     zg = leitfragen_aufteilen(profile.get("zielgruppe", ""), ZIELGRUPPE_FELDER, "wer")
     alter_vorher = [ALTER_ALT.get(a.strip(), a.strip()) for a in zg.get("alter", "").split(",")]
     alter_vorher = [a for a in alter_vorher if a in ALTERSGRUPPEN]
@@ -2155,10 +2155,12 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
                      selection_mode="multi", default=alter_vorher)
     zg["alter"] = ", ".join(alter or [])
     # Mehrzeilige Felder, deren Höhe sich dem Inhalt anpasst (langer Text bleibt vollständig sichtbar)
-    z1, z2 = st.columns(2, vertical_alignment="top")
+    # Erste Zeile: Labels gleich hoch (das linke bricht um), damit beide Felder auf derselben Höhe beginnen
+    with st.container(key="zg_zeile1"):
+        z1, z2 = st.columns(2, vertical_alignment="top")
     with z1:
         zg["wer"] = st.text_area("Wer sind die Personen, die angesprochen werden sollen? *", zg.get("wer", ""),
-                                  placeholder="z. B. Berufstätige und Familien aus der Region", height="content")
+                                  placeholder="z. B. berufstätige Frauen und Männer sowie Familien aus der Region", height="content")
     with z2:
         zg["warum"] = st.text_area("Warum kommen diese Personen zu euch? *", zg.get("warum", ""),
                                     placeholder="z. B. Qualität, persönliche Beratung, Nähe", height="content")
