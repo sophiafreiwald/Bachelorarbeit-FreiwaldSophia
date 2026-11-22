@@ -2280,7 +2280,7 @@ MARKENFLAECHE_HTML = f"""
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Einmal Profil anlegen</b><small>Angebot, Zielgruppe und weitere Unternehmensdaten eintragen. Danach berücksichtigt die Content-Engine sie in jedem Beitrag – nichts muss wiederholt angegeben werden.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor.</small></div></div>
+        <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor. Du gibst die Beiträge frei und dein Content wird automatisch für dich gepostet oder im Content-Kalender eingeplant.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Drei fertige Vorschläge</b><small>Bild, Headline, Text und Hashtags – mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
