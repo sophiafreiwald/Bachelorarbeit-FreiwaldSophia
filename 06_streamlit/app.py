@@ -2282,7 +2282,7 @@ MARKENFLAECHE_HTML = f"""
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Im Dialog zum Beitrag</b><small>Du musst kein Marketing-Experte sein: Die Content-Engine stellt dir ein paar einfache Fragen und schlägt dir passende Themen zum Posten vor. Du gibst die Beiträge frei und dein Content wird automatisch für dich gepostet oder im Content-Kalender eingeplant.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
-        <div><b>Drei fertige Vorschläge</b><small>Bild, Headline, Text und Hashtags – mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
+        <div><b>Du entscheidest, was freigegeben wird</b><small>Du gibst das Thema vor und die Content-Engine erstellt drei Vorschläge mit passendem Bild, Headline, Text und Hashtags – abgestimmt auf deine Unternehmensangaben, mit deinem Logo und in deinen Farben. Du wählst aus und passt nach Wunsch an.</small></div></div>
       <div class="ce-login-feature"><div class="ce-icon"></div>
         <div><b>Prüfen, freigeben, planen</b><small>Vor jeder Freigabe werden die Angaben gegen dein Profil geprüft. Erst nach deiner aktiven Freigabe wird der Beitrag gepostet oder im Content-Kalender eingeplant.</small></div></div>
     </div>
