@@ -2056,24 +2056,31 @@ OEFFNUNGSZEIT_BEISPIEL = {"Mo": "z. B. 7:30–12:00 und 13:00–18:00 Uhr", "Di"
                           "Fr": "z. B. 7:00–12:00 Uhr", "Sa": "z. B. geschlossen", "So": "z. B. geschlossen"}
 
 
-def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_feld: bool = True) -> dict:
+def logo_feld(profile: dict, key: str):
+    """Logo anzeigen und hochladen – AUSSERHALB des Formulars, damit ein neu gewähltes Logo sofort angezeigt wird
+    (in einem st.form kämen Uploads erst beim Absenden an). Gibt die hochgeladene Datei oder None zurück;
+    gespeichert wird sie mit dem Formular (profil_speichern)."""
+    hat_logo = bool(profile.get("logo_path") and os.path.exists(profile["logo_path"]))
+    neu = st.session_state.get(key)
+    st.markdown("##### Logo")
+    # dezente Darstellung über style.css (.st-key-logo_feld_…); Knopftext je nachdem, ob schon ein Logo da ist
+    with st.container(key="logo_feld_aendern" if (hat_logo or neu) else "logo_feld_neu"):
+        l1, l2 = st.columns([1, 5], vertical_alignment="center")
+        with l1:
+            if neu is not None:
+                st.image(neu.getvalue(), width=96)
+            elif hat_logo:
+                st.image(profile["logo_path"], width=96)
+            else:
+                st.caption("Noch kein Logo")
+        with l2:
+            return st.file_uploader("Logo", type=["png", "jpg", "jpeg"], key=key, label_visibility="collapsed")
+
+
+def profil_felder(profile: dict) -> dict:
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
     w = {}
     st.markdown("##### Unternehmen")
-    if mit_logo_feld:  # Logo direkt unter „Unternehmen“: anzeigen und hinzufügen bzw. ändern
-        hat_logo = bool(profile.get("logo_path") and os.path.exists(profile["logo_path"]))
-        # dezente Darstellung über style.css (.st-key-logo_feld_…); Knopftext je nachdem, ob schon ein Logo da ist
-        with st.container(key="logo_feld_aendern" if hat_logo else "logo_feld_neu"):
-            l1, l2 = st.columns([1, 5], vertical_alignment="center")
-            with l1:
-                if hat_logo:
-                    st.image(profile["logo_path"], width=96)
-                else:
-                    st.caption("Noch kein Logo")
-            with l2:
-                w["logo_upload"] = st.file_uploader("Logo ändern" if hat_logo else logo_label,
-                                                    type=["png", "jpg", "jpeg", "svg"],
-                                                    label_visibility="collapsed")
     w["unternehmensname"] = st.text_input("Unternehmensname *", profile.get("unternehmensname", ""),
                                           placeholder="z. B. Bäckerei Freiwald")
     w["branche"] = st.text_input("Branche *", profile.get("branche", ""), placeholder="z. B. Bäckerei, Fitnessstudio")
@@ -2386,6 +2393,7 @@ def render_registrieren():
     st.caption("Lege dein Konto und dein Unternehmensprofil an. Die Angaben werden bei jeder "
                "Content-Generierung automatisch berücksichtigt und lassen sich später unter „Profil“ ändern. "
                "Pflichtfelder sind mit * markiert.")
+    logo = logo_feld({}, "logo_registrierung")
     with st.form("registrierung"):
         st.markdown("##### Zugangsdaten")
         email = st.text_input("E-Mail *", placeholder="name@unternehmen.de")
@@ -2395,6 +2403,7 @@ def render_registrieren():
         with p2:
             passwort2 = st.text_input("Passwort wiederholen *", type="password")
         werte = profil_felder({})
+        werte["logo_upload"] = logo
         if st.form_submit_button("Konto erstellen & loslegen", type="primary", width="stretch"):
             fehler = profil_fehler(werte)
             if not email.strip() or "@" not in email:
@@ -2429,8 +2438,10 @@ def render_onboarding_page():
             "sie später jederzeit unter „Profil“ anpassen."
         )
         profile = db.get_profile(st.session_state.user_id)
+        logo = logo_feld(profile, "logo_onboarding")
         with st.form("onboarding_formular"):
             werte = profil_felder(profile)
+            werte["logo_upload"] = logo
             if st.form_submit_button("Profil speichern & los geht's", type="primary", width='stretch'):
                 fehler = profil_fehler(werte)
                 if fehler:
@@ -3607,8 +3618,10 @@ def render_profil_page():
     with st.container(key="pagebody"):
         profile = db.get_profile(st.session_state.user_id)
 
+        logo = logo_feld(profile, "logo_profil")
         with st.form("profil_formular"):
             werte = profil_felder(profile)
+            werte["logo_upload"] = logo
             if st.form_submit_button("Profil speichern", type="primary"):
                 fehler = profil_fehler(werte)
                 for f in fehler:
