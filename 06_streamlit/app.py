@@ -98,8 +98,7 @@ ZIEL_OPTIONEN = prompts.ZIEL_OPTIONEN  # Meffert et al. (2019)
 ANREDE_OPTIONEN = ["Sie", "Du"]
 CONTENT_TYPE_LABELS = {
     "idee": "Nur Idee",
-    "bild": "Nur Bild",
-    "caption": "Nur Caption",
+    "bild": "Nur Bild",  # Story (ohne Caption)
     "beides": "Bild + Caption",
 }
 PLATTFORMEN = {"instagram": "Instagram", "facebook": "Facebook"}
@@ -253,7 +252,7 @@ def plattform_vorgaben(key: str, verhaeltnis: str = "") -> dict:
 
 def bild_erforderlich(content_type: str) -> bool:
     return content_type in ("bild", "beides")
-NAV_ITEMS = [("chat", "Beitrag erstellen"), ("vorschlaege", "Posting Vorschläge"), ("kalender", "Content-Kalender"), ("profil", "Profil")]
+NAV_ITEMS = [("chat", "Beitrag erstellen"), ("vorschlaege", "Posting-Vorschläge"), ("kalender", "Content-Kalender"), ("profil", "Profil")]
 LOGO_VERZEICHNIS = os.path.join(db.UPLOADS_VERZEICHNIS, "logos")
 
 
@@ -964,7 +963,7 @@ def selbstpruefung(client, post: dict, context: dict, profile: dict) -> dict:
 def passe_post_an_vorgaben(client, post: dict, spec: dict, context: dict, profile: dict = None) -> dict:
     """Gibt Caption und Headline zurück, die garantiert in die Plattformvorgaben passen.
     Vorher prüft die Content-Engine den Entwurf selbst und arbeitet ihr Feedback ein (selbstpruefung).
-    Beitrag (Feed) und Reel: Text und Hashtags getrennt – der Text hält das Limit, die Hashtags
+    Feed und Karussell: Text und Hashtags getrennt – der Text hält das Limit, die Hashtags
     (genau 5: Unternehmensname, Ort, 3 thematisch) stehen in einer eigenen Zeile."""
     if ist_karussell(context.get("plattform_format")):  # Karten zuerst sicherstellen, dann gemeinsam prüfen
         post = {**post, "slides": karten_sicherstellen(client, post, context, profile or {})}
@@ -1596,7 +1595,7 @@ def zeige_faktencheck_ergebnis(fc: dict):
 def _hashtag_ergaenzen(widget_key: str, tag: str, maximum):
     """Callback für „Ergänzen“: läuft VOR dem nächsten Rendern, darf daher das Textfeld ändern."""
     if widget_key.startswith("hashtags_"):
-        # Hashtag-Zeile (Feed/Reel): an Position 3 einsetzen (nach Name und Ort), höchstens 5 behalten
+        # Hashtag-Zeile (Feed/Karussell): an Position 3 einsetzen (nach Name und Ort), höchstens 5 behalten
         tags = [t for t in hinweise.trenne_hashtags(st.session_state.get(widget_key, ""))[1]
                 if t.lower() != tag.lower()]
         tags.insert(min(2, len(tags)), tag)
@@ -1614,7 +1613,7 @@ def _text_entfernen(text_key: str, text: str):
 def zeige_ci_hinweise(profile: dict, caption: str, headline: str, stichtag, widget_key: str, maximum,
                       hashtag_regel: bool = False, bildtext: str = "", text_key: str = ""):
     """Hinweise auf CI-Abweichungen, Anrede und veraltete Daten – mit „Ergänzen“ für fehlende Hashtags.
-    hashtag_regel=True (Feed/Reel): zusätzlich Prüfung „genau 5 Hashtags, 1. Name, 2. Ort“."""
+    hashtag_regel=True (Feed/Karussell): zusätzlich Prüfung „genau 5 Hashtags, 1. Name, 2. Ort“."""
     liste = hinweise.pruefe_beitrag(profile, caption, headline, stichtag)
     if hashtag_regel:
         liste += hinweise.pruefe_hashtag_regel(profile, hinweise.trenne_hashtags(caption)[1])
@@ -3058,7 +3057,7 @@ def render_vorschlaege_page():
                         )
                         fb_plaetze["caption"] = st.container()
                         if regel:
-                            # Feed/Reel: Hashtags in eigener Zeile, zählen nicht zum Primärtext-Limit
+                            # Feed/Karussell: Hashtags in eigener Zeile, zählen nicht zum Primärtext-Limit
                             hashtag_zeile = st.text_input(
                                 "Hashtags", " ".join(post.get("hashtags_liste") or []), key=f"hashtags_{i}",
                                 help="Genau 5 Hashtags: 1. Unternehmensname, 2. Ort, 3.–5. thematisch. "
@@ -3308,7 +3307,7 @@ def beitrag_dialog(post_id: int):
     cap_key = f"dlg_caption_{post_id}"
     tag_key = f"dlg_hashtags_{post_id}"
     regel = hinweise.hashtag_regel_gilt(p.get("plattform_format"))
-    if regel:  # Feed/Reel: Text und Hashtag-Zeile getrennt bearbeiten
+    if regel:  # Feed/Karussell: Text und Hashtag-Zeile getrennt bearbeiten
         gespeicherter_text, gespeicherte_tags = hinweise.trenne_hashtags(p["caption"])
         st.session_state.setdefault(cap_key, gespeicherter_text)
         st.session_state.setdefault(tag_key, " ".join(gespeicherte_tags))

@@ -173,7 +173,7 @@ def normalisiere_oeffnungszeit(text: str):
     return True, ", ".join(spannen)
 
 
-# --- Hashtag-Regel für Beitrag (Feed) und Reel ------------------------------------------
+# --- Hashtag-Regel für Feed und Karussell ------------------------------------------------
 # Vorgabe: genau 5 Hashtags – 1. Unternehmensname, 2. Ort (aus der Anschrift), 3.–5. thematisch.
 # Die Hashtags stehen in einer eigenen Zeile und zählen NICHT zum Primärtext-Limit. Storys: keine Pflicht.
 
@@ -183,7 +183,7 @@ _RECHTSFORMEN = re.compile(r"\b(gmbh|mbh|ug|ag|kg|ohg|gbr|e\.?\s?k\.?|e\.?\s?v\.
 
 
 def hashtag_regel_gilt(plattform_format: str) -> bool:
-    # Beitrag (Feed), Karussell und Reel: genau 5 Hashtags (redaktionelle Regel); Story: keine Pflicht
+    # Feed und Karussell: genau 5 Hashtags (redaktionelle Regel); Story: keine Pflicht
     return str(plattform_format or "").endswith(("_feed", "_karussell", "_reels"))
 
 
@@ -239,7 +239,7 @@ def caption_zusammensetzen(text: str, hashtags: list) -> str:
 
 
 def pruefe_hashtag_regel(profil: dict, hashtags: list) -> list:
-    """Hinweise, wenn die Hashtag-Zeile von der Vorgabe abweicht (nur Feed/Reel)."""
+    """Hinweise, wenn die Hashtag-Zeile von der Vorgabe abweicht (nur Feed/Karussell)."""
     hinweise = []
     tags = [t.lower() for t in hashtags or []]
     if len(tags) != HASHTAG_ANZAHL:

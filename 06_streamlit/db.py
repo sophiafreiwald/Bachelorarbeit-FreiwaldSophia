@@ -8,7 +8,7 @@ import sqlite3
 from contextlib import contextmanager
 
 # Speicherort der Daten (Datenbank + uploads):
-#   - lokal und auf Streamlit Community Cloud: neben db.py (wie bisher)
+#   - lokal: neben db.py
 #   - auf Railway mit Volume: im Volume (RAILWAY_VOLUME_MOUNT_PATH setzt Railway automatisch) oder in einem
 #     frei gewählten Ordner (DATEN_VERZEICHNIS). Dort bleiben die Daten bei Neustarts und neuen Commits erhalten.
 APP_VERZEICHNIS = os.path.dirname(os.path.abspath(__file__))
