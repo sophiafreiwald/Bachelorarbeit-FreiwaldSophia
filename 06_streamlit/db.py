@@ -206,6 +206,38 @@ def _fakten_in_ci_besonderheiten(conn):
         conn.execute("UPDATE profiles SET ci_besonderheiten = ? WHERE user_id = ?", (neu, row["user_id"]))
 
 
+# Zielgruppe: frühere Altersgruppen → Generationen (wie in der Arbeit), Stand 2026
+ALTER_ZU_GENERATION = {
+    "13–17-Jährige": ["Generation Z (1995–2012)"], "13–17": ["Generation Z (1995–2012)"],
+    "18–29": ["Generation Z (1995–2012)"],
+    "30–49": ["Millennials (1980–1994)", "Generation X (1965–1979)"],
+    "50–64": ["Generation X (1965–1979)"], "65+": ["Baby Boomer (1946–1964)"],
+    "Keine bestimmte Altersgruppe": ["Keine bestimmte Generation"],
+}
+_GENERATIONEN = ["Generation Z (1995–2012)", "Millennials (1980–1994)", "Generation X (1965–1979)",
+                 "Baby Boomer (1946–1964)", "Keine bestimmte Generation"]
+
+
+def _altersgruppen_in_generationen(conn):
+    """Ersetzt im Zielgruppen-Text („Altersgruppen: 18–29, 30–49; Wer: …“) alte Altersgruppen durch Generationen.
+    Bereits umgestellte Angaben bleiben unverändert."""
+    for row in conn.execute("SELECT user_id, zielgruppe FROM profiles WHERE zielgruppe LIKE 'Altersgruppen:%'"
+                            " OR zielgruppe LIKE '%; Altersgruppen:%'").fetchall():
+        teile = (row["zielgruppe"] or "").split("; ")
+        geaendert = False
+        for i, teil in enumerate(teile):
+            if not teil.startswith("Altersgruppen:"):
+                continue
+            werte = [w.strip() for w in teil.split(":", 1)[1].split(",") if w.strip()]
+            neu = [g for w in werte for g in ALTER_ZU_GENERATION.get(w, [w])]
+            neu = [g for g in _GENERATIONEN if g in neu] + [w for w in neu if w not in _GENERATIONEN]
+            if neu != werte:
+                teile[i] = "Altersgruppen: " + ", ".join(dict.fromkeys(neu))
+                geaendert = True
+        if geaendert:
+            conn.execute("UPDATE profiles SET zielgruppe = ? WHERE user_id = ?", ("; ".join(teile), row["user_id"]))
+
+
 def _migrate_profiles_schema(conn):
     vorhandene_spalten = {row["name"] for row in conn.execute("PRAGMA table_info(profiles)")}
     for spalte, definition in _NEUE_PROFIL_SPALTEN.items():
@@ -217,6 +249,7 @@ def _migrate_profiles_schema(conn):
         _fakten_in_ci_besonderheiten(conn)
     if "standort" in vorhandene_spalten:  # Ort aus dem alten Feld übernehmen, falls noch leer
         conn.execute("UPDATE profiles SET ort = standort WHERE COALESCE(ort, '') = '' AND COALESCE(standort, '') != ''")
+    _altersgruppen_in_generationen(conn)
     for spalte in _ENTFERNTE_PROFIL_SPALTEN:
         if spalte in vorhandene_spalten:
             conn.execute(f"ALTER TABLE profiles DROP COLUMN {spalte}")

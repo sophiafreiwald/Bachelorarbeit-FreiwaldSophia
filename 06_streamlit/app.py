@@ -2029,12 +2029,9 @@ ZIELGRUPPE_FELDER = [("alter", "Altersgruppen"), ("wer", "Wer"), ("warum", "Waru
 ALTER_KEINE = "Keine bestimmte Generation"
 ALTERSGRUPPEN = ["Generation Z (1995–2012)", "Millennials (1980–1994)", "Generation X (1965–1979)",
                  "Baby Boomer (1946–1964)", ALTER_KEINE]
-# Frühere Altersgruppen in bereits gespeicherten Profilen → passende Generation(en), Stand 2026
-ALTER_ALT = {"13–17-Jährige": ["Generation Z (1995–2012)"], "13–17": ["Generation Z (1995–2012)"],
-             "18–29": ["Generation Z (1995–2012)"],
-             "30–49": ["Millennials (1980–1994)", "Generation X (1965–1979)"],
-             "50–64": ["Generation X (1965–1979)"], "65+": ["Baby Boomer (1946–1964)"],
-             "Keine bestimmte Altersgruppe": [ALTER_KEINE]}
+# Frühere Altersgruppen in bereits gespeicherten Profilen → passende Generation(en); die Datenbank stellt
+# beim Start ohnehin um (db._altersgruppen_in_generationen)
+ALTER_ALT = db.ALTER_ZU_GENERATION
 
 
 def leitfragen_text(teile: dict, felder: list) -> str:
