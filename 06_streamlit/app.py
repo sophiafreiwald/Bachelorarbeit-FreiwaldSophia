@@ -505,7 +505,6 @@ def generiere_vorschlaege(profile: dict, context: dict, anzahl: int = 3, bisheri
         "bisherige_aspekte": bisherige_aspekte or [],
         "varianten_seed": random.randint(1, 1_000_000),
         "unternehmensname": profile.get("unternehmensname", ""),
-        "standort": profile.get("ort") or profile.get("standort", ""),
         "branche": profile.get("branche", ""),
         "tone_of_voice": profile.get("tone_of_voice", "Professionell"),
         # Unternehmenswissen aus dem Profil
@@ -2051,8 +2050,7 @@ def leitfragen_aufteilen(text: str, felder: list, freitext_feld: str) -> dict:
     return teile
 
 
-def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten: bool = False,
-                  mit_logo_feld: bool = True) -> dict:
+def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_feld: bool = True) -> dict:
     """Zeichnet alle Profilfelder (innerhalb eines st.form des Aufrufers) und gibt die Werte zurück."""
     w = {}
     st.markdown("##### Unternehmen")
@@ -2107,7 +2105,7 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
         w["plz"] = st.text_input("PLZ", profile.get("plz", ""), max_chars=5, placeholder="70794")
     with a2:
         # Bestehende Konten: der frühere „Standort“ wird als Ort vorbelegt
-        w["ort"] = st.text_input("Ort", profile.get("ort") or profile.get("standort", ""), placeholder="z. B. Filderstadt")
+        w["ort"] = st.text_input("Ort", profile.get("ort", ""), placeholder="z. B. Filderstadt")
     k1, k2 = st.columns(2)
     with k1:
         w["telefon"] = st.text_input("Telefon", profile.get("telefon", ""), placeholder="z. B. 0711 123456")
@@ -2202,16 +2200,6 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_konten
     st.caption("Hier könnt ihr auch Vorgaben angeben, die beispielsweise zur Bilderstellung verwendet werden "
                "sollen, z. B. natürliche Bildgestaltung, warme Farbtöne, harmonisches Zusammenspiel etc.")
 
-    if mit_konten:
-        st.markdown("##### Konten für die Veröffentlichung")
-        st.caption("Optional, für eine spätere echte Anbindung an Instagram und Facebook. Im Prototyp wird "
-                   "die Veröffentlichung simuliert.")
-        k1, k2 = st.columns(2)
-        with k1:
-            w["instagram_account_id"] = st.text_input("Instagram-Business-Account-ID",
-                                                      profile.get("instagram_account_id", ""))
-        with k2:
-            w["facebook_page_id"] = st.text_input("Facebook-Seiten-ID", profile.get("facebook_page_id", ""))
     return w
 
 
@@ -2260,7 +2248,6 @@ def profil_speichern(user_id: int, altes_profil: dict, w: dict, **extra):
     werte = {k: (v.strip() if isinstance(v, str) else v) for k, v in w.items()
              if k not in ("logo_upload", "schrift_upload", "oeffnungszeiten")}
     werte["oeffnungszeiten"] = json.dumps(w.get("oeffnungszeiten", {}), ensure_ascii=False)
-    werte["standort"] = werte.get("ort", "")  # „Standort“ wird aus dem Ort übernommen (Altfeld)
     db.save_profile(user_id, logo_path=logo_path, ci_schrift_datei=schrift_datei,
                     profil_aktualisiert=datetime.datetime.now().isoformat(timespec="seconds"),
                     **werte, **extra)
@@ -3594,7 +3581,7 @@ def render_profil_page():
         profile = db.get_profile(st.session_state.user_id)
 
         with st.form("profil_formular"):
-            werte = profil_felder(profile, mit_konten=True)
+            werte = profil_felder(profile)
             if st.form_submit_button("Profil speichern", type="primary"):
                 fehler = profil_fehler(werte)
                 for f in fehler:

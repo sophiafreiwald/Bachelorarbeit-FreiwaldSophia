@@ -200,7 +200,7 @@ def feste_hashtags(profil: dict) -> list:
     """Die beiden festen Hashtags: Unternehmensname und Ort (Ort nach der PLZ; Fallback: alter Standort)."""
     profil = profil or {}
     tags = [als_hashtag(profil.get("unternehmensname", "")),
-            als_hashtag(profil.get("ort") or profil.get("standort") or "")]
+            als_hashtag(profil.get("ort") or "")]
     return [t for t in tags if t]
 
 
