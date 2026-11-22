@@ -2034,6 +2034,16 @@ ALTERSGRUPPEN = ["Generation Z (1995–2012)", "Millennials (1980–1994)", "Gen
 ALTER_ALT = db.ALTER_ZU_GENERATION
 
 
+def generation_als_alter(generation: str) -> str:
+    """Anzeige im Profil: nur das Alter im aktuellen Jahr, z. B. „Generation Z (1995–2012)“ → „14–31 Jahre“.
+    Gespeichert (und an die KI übergeben) wird weiterhin die Generation mit Jahrgängen."""
+    m = re.search(r"\((\d{4})–(\d{4})\)", generation)
+    if not m:
+        return "Keine bestimmte Altersgruppe" if generation == ALTER_KEINE else generation
+    jahr = datetime.date.today().year
+    return f"{jahr - int(m.group(2))}–{jahr - int(m.group(1))} Jahre"
+
+
 def leitfragen_text(teile: dict, felder: list) -> str:
     """Setzt die Antworten zu „Etikett: Wert; …“ zusammen (leere Felder entfallen, „;“ → „,“,
     Zeilenumbrüche → Leerzeichen)."""
@@ -2161,7 +2171,8 @@ def profil_felder(profile: dict, logo_label: str = "Logo (optional)", mit_logo_f
     zg = leitfragen_aufteilen(profile.get("zielgruppe", ""), ZIELGRUPPE_FELDER, "wer")
     alter_vorher = [g for a in zg.get("alter", "").split(",") for g in ALTER_ALT.get(a.strip(), [a.strip()])]
     alter_vorher = [a for a in ALTERSGRUPPEN if a in alter_vorher]  # ohne Doppelte, feste Reihenfolge
-    alter = st.pills("Welche Generationen sollen angesprochen werden? * (mehrere möglich)", ALTERSGRUPPEN,
+    alter = st.pills("Welche Altersgruppen sollen angesprochen werden? * (mehrere möglich)", ALTERSGRUPPEN,
+                     format_func=generation_als_alter,
                      selection_mode="multi", default=alter_vorher)
     zg["alter"] = ", ".join(alter or [])
     # Mehrzeilige Felder, deren Höhe sich dem Inhalt anpasst (langer Text bleibt vollständig sichtbar)
@@ -2246,9 +2257,9 @@ def profil_fehler(w: dict) -> list:
     zg = w.get("_zielgruppe_teile", {})
     alter = zg.get("alter_liste", [])
     if not alter:
-        fehler.append("Zielgruppe: Bitte mindestens eine Generation auswählen.")
+        fehler.append("Zielgruppe: Bitte mindestens eine Altersgruppe auswählen.")
     elif ALTER_KEINE in alter and len(alter) > 1:
-        fehler.append(f"Zielgruppe: Bitte entweder bestimmte Generationen oder „{ALTER_KEINE}“ auswählen.")
+        fehler.append("Zielgruppe: Bitte entweder bestimmte Altersgruppen oder „Keine bestimmte Altersgruppe“ auswählen.")
     if not zg.get("wer", "").strip():
         fehler.append("Zielgruppe: Bitte beschreiben, wer angesprochen werden soll.")
     if not zg.get("warum", "").strip():
